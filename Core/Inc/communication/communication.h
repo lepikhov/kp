@@ -27,6 +27,7 @@ enum COMMUNICATION_COMMAND_STATES {
 	COMMUNICATION_COMMAND_OK,
 	COMMUNICATION_COMMAND_MISMATCH,
 	COMMUNICATION_COMMAND_ERR,
+	COMMUNICATION_COMMAND_PACKET_ERR,
 };
 
 #define COMMUNICATION_BUFFER_SIZE 512
@@ -59,6 +60,7 @@ enum COMMUNICATION_STATES  communication_rx_irq(void);
 enum COMMUNICATION_STATES  communication_rx(void);
 enum COMMUNICATION_STATES  communication_rx(void);
 enum COMMUNICATION_STATES  communication_prepare_rx_packet(void);
+enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void);
 
 void usart_tx_callback(void);
 void usart_rx_callback(void);

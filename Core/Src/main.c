@@ -29,6 +29,8 @@
 /* USER CODE BEGIN Includes */
 #include "wd.h"
 #include <communication/communication.h>
+#include <inputs.h>
+#include <device.h>
 #include "board.h"
 /* USER CODE END Includes */
 
@@ -111,6 +113,8 @@ int main(void)
 
 	//ext_wd_func();
 	communication_func();
+	inputs_func();
+	check_device_type_func();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

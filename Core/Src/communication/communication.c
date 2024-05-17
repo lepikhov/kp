@@ -46,18 +46,12 @@ enum COMMUNICATION_STATES communication_func(void) {
 			break;
 		case RXTX_STATE_MACHINE_RECEIVED:
 			//
-			/*
-			communication_set_tx_buffer(
-					communication_struct.rx_packet_buff,
-					communication_struct.rx_packet_size
-			);
-			*/
 			communication_commands_parser(
 					communication_struct.rx_packet_buff,
 					communication_struct.tx_packet_buff,
 					communication_struct.rx_packet_size,
 					&communication_struct.tx_packet_size
-			);
+					);
 
 			crc16_calc_buff(
 					communication_struct.tx_packet_buff,
@@ -66,9 +60,11 @@ enum COMMUNICATION_STATES communication_func(void) {
 
 			communication_struct.tx_packet_size += 2;
 
+			communication_prepare_tx_buffer();
+
 			communication_set_tx_buffer(
-					communication_struct.tx_packet_buff,
-					communication_struct.tx_packet_size
+					communication_struct.tx_buff,
+					communication_struct.tx_size
 			);
 
 			communication_start_tx();
@@ -78,12 +74,6 @@ enum COMMUNICATION_STATES communication_func(void) {
 			break;
 		case RXTX_STATE_MACHINE_SENDING_ERROR_RESPONSE:
 			//
-			communication_struct.rx_packet_buff[communication_struct.rx_packet_size] = 0xEE;
-			communication_set_tx_buffer(
-					communication_struct.rx_packet_buff,
-					communication_struct.rx_packet_size+1
-			);
-			communication_start_tx();
 			break;
 		default:
 			//
@@ -105,7 +95,7 @@ enum COMMUNICATION_STATES  communication_rx(void){
 				return COMMUNICATION_RX_PACKET_ERR;
 			}
 			if (!crc16_check_buff(communication_struct.rx_packet_buff, communication_struct.rx_packet_size)) {
-				communication_struct.state = RXTX_STATE_MACHINE_SENDING_ERROR_RESPONSE;
+				communication_start_rx();
 				return COMMUNICATION_RX_PACKET_CRC_ERR;
 			}
 			communication_struct.state = RXTX_STATE_MACHINE_RECEIVED;
@@ -179,7 +169,10 @@ enum COMMUNICATION_STATES communication_rx_irq(void) {
 
 	if ( state == COMMUNICATION_OK) {
 		if (rx_cntr < COMMUNICATION_BUFFER_SIZE-1) ++communication_struct.rx_cntr;
-		else state = COMMUNICATION_RX_BUFFER_OVER_ERR;
+		else {
+			communication_struct.rx_cntr = 0;
+			state = COMMUNICATION_RX_BUFFER_OVER_ERR;
+		}
 	}
 
 	return state;
@@ -232,6 +225,33 @@ enum COMMUNICATION_STATES  communication_prepare_rx_packet(void) {
 		*dst++ =  *src++;
 		++communication_struct.rx_packet_size;
 	}
+
+	return COMMUNICATION_OK;
+
+}
+
+enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void) {
+	uint8_t * src = communication_struct.tx_packet_buff;
+	uint8_t * dst = communication_struct.tx_buff;
+	uint16_t cntr = communication_struct.tx_packet_size;
+
+	communication_struct.tx_size = 4;
+
+	*dst++ = BYTE_B;
+	*dst++ = BYTE_H;
+
+	while (cntr--) {
+		if (*src == BYTE_B) {
+			++communication_struct.tx_size;
+			*dst++ = BYTE_B;
+		}
+		*dst++ =  *src++;
+		++communication_struct.tx_size;
+	}
+
+	*dst++ = BYTE_B;
+	*dst++ = BYTE_K;
+
 
 	return COMMUNICATION_OK;
 
