@@ -32,7 +32,7 @@ enum COMMUNICATION_COMMAND_STATES {
 
 #define COMMUNICATION_BUFFER_SIZE 512
 
-struct communication_struct_type{
+struct communication_t{
 	enum RXTX_STATE_MACHINE_STATES state;
 	enum RX_STATE_MACHINE_STATES rx_state;
 	uint8_t rx_buff[COMMUNICATION_BUFFER_SIZE];

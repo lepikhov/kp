@@ -11,7 +11,14 @@
 #include "main.h"
 #include <device.h>
 
+
+const char DEVICE_NAME_KDS[] = "KDS";
+const char DEVICE_NAME_BTU[] = "BTU";
+const char DEVICE_NAME_UNKNOWN[] = "UNKNOWN";
+
+
 uint8_t device_type = 0;
+struct work_time_t work_time = {0};
 
 void check_device_type_func() {
 	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_14) == GPIO_PIN_SET ) {
@@ -38,7 +45,7 @@ void check_device_type_func() {
 enum DEVICE_TYPE get_device_type() {
 	if (device_type == 0x1) return DEVICE_TYPE_KDS;
 	if (device_type == 0x7) return DEVICE_TYPE_BTU;
-	return DEVICE_TYPE_UNKWOWN;
+	return DEVICE_TYPE_UNKNOWN;
 }
 
 uint8_t copy_MAC(uint8_t* dst) {
@@ -46,5 +53,33 @@ uint8_t copy_MAC(uint8_t* dst) {
 	return MAC_SIZE;
 }
 
+uint8_t copy_device_name(uint8_t* dst) {
+	enum DEVICE_TYPE type = get_device_type();
+	if (type == DEVICE_TYPE_KDS) {
+		strcpy((char *)dst, DEVICE_NAME_KDS);
+		return strlen(DEVICE_NAME_KDS);
+	}
+	else if (type == DEVICE_TYPE_BTU) {
+		strcpy((char *)dst, DEVICE_NAME_BTU);
+		return strlen(DEVICE_NAME_BTU);
+	}
+	else {
+		strcpy((char *)dst, DEVICE_NAME_UNKNOWN);
+		return strlen(DEVICE_NAME_UNKNOWN);
+	}
+}
+
+void update_work_time() {
+	++work_time.mlsek;
+	if (work_time.mlsek > 999) {
+		++work_time.sek;
+		work_time.mlsek = 0;
+	}
+
+}
+
+uint32_t get_work_time_sek() {
+	return work_time.sek;
+}
 
 

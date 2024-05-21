@@ -16,6 +16,8 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_identification,
 		communication_command_MAC,
 		communication_command_inputs_state,
+		communication_command_work_time,
+		communication_command_device_name,
 };
 
 enum COMMUNICATION_COMMAND_STATES communication_command_identification(
@@ -34,6 +36,8 @@ enum COMMUNICATION_COMMAND_STATES communication_command_identification(
 	) {
 
 		// this is IDENTIFICATION command
+
+		if (req_packet_size != 7) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
 
 		// prepare answer
 
@@ -55,7 +59,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_identification(
 
 		*ans_packet_buff++ = DEVICE_VERSION; // device version
 		*ans_packet_buff++ = MAXIMUM_PACKET_LENGTH; // maximum packet length
-		*ans_packet_buff++ = 2; 	// maximum waiting time for a response from the device in tens
+		*ans_packet_buff = 2; 	// maximum waiting time for a response from the device in tens
 									// of milliseconds (*10 msec)
 
 
@@ -88,6 +92,8 @@ enum COMMUNICATION_COMMAND_STATES communication_command_MAC(
 
 		// this is MAC command
 
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
 		// prepare answer
 
 		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
@@ -118,6 +124,8 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 ) {
 
 	uint16_t inputs;
+	uint8_t * ptr = (uint8_t*)&inputs;
+
 	//check command
 
 	if (
@@ -128,6 +136,8 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 	) {
 
 		// this is inputs state command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
 
 		// prepare answer
 
@@ -141,8 +151,8 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 		*ans_packet_buff++ = TICKET_ID_DATA;
 
 		inputs = inputs_get_data(true);
-		*ans_packet_buff++ = inputs&0xff; // 0..7 in
-		*ans_packet_buff++ = (inputs>>8)&0xff; // 8..15 in
+		*ans_packet_buff++ = *ptr++; // 0..7 in
+		*ans_packet_buff = *ptr; // 8..15 in
 
 
 		*ans_packet_size = 8;
@@ -152,6 +162,104 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 	}
 
 	// this is not MAC command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_work_time(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	uint32_t wt = get_work_time_sek();
+	uint8_t * ptr = (uint8_t*)&wt;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_WORK_TIME)
+	) {
+
+		// this is work time command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_WORK_TIME; //
+
+
+		*ans_packet_buff++ = *ptr++;
+		*ans_packet_buff++ = *ptr++;
+		*ans_packet_buff++ = *ptr++;
+		*ans_packet_buff   = *ptr;
+
+		*ans_packet_size = 10;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not work time command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_device_name(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	uint8_t len;
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_DEVICE_NAME)
+	) {
+
+		// this is device name command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_DEVICE_NAME; //
+
+		len = copy_device_name(ans_packet_buff);
+
+		ans_packet_buff[len] = 0x0; //end of string
+
+		*ans_packet_size = 6 + len + 1;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not device name command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
@@ -192,7 +300,7 @@ enum COMMUNICATION_STATES communication_commands_parser(
 						);
 				break;
 			default:
-				//s
+				//
 		}
 		state = COMMUNICATION_RX_PACKET_COMMAND_ERR;
 	}
