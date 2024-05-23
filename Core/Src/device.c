@@ -1,5 +1,5 @@
 /*
- * MAC.c
+ * device.c
  *
  *  Created on: May 15, 2024
  *      Author: lepikhov
@@ -15,6 +15,7 @@
 const char DEVICE_NAME_KDS[] = "KDS";
 const char DEVICE_NAME_BTU[] = "BTU";
 const char DEVICE_NAME_UNKNOWN[] = "UNKNOWN";
+const char COMPILATION_DATE[] = __DATE__" "__TIME__;
 
 
 uint8_t device_type = 0;
@@ -67,6 +68,11 @@ uint8_t copy_device_name(uint8_t* dst) {
 		strcpy((char *)dst, DEVICE_NAME_UNKNOWN);
 		return strlen(DEVICE_NAME_UNKNOWN);
 	}
+}
+
+uint8_t copy_compilation_date(uint8_t* dst) {
+	strcpy((char *)dst, COMPILATION_DATE);
+	return strlen(COMPILATION_DATE);
 }
 
 void update_work_time() {

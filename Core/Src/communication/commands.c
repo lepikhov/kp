@@ -16,8 +16,10 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_identification,
 		communication_command_MAC,
 		communication_command_inputs_state,
+		communication_command_inputs_state_changed,
 		communication_command_work_time,
 		communication_command_device_name,
+		communication_command_compilation_date,
 };
 
 enum COMMUNICATION_COMMAND_STATES communication_command_identification(
@@ -148,11 +150,11 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 		*ans_packet_buff++ = 0x01; // number of block
 		*ans_packet_buff++ = 0x01; // quantity of blocks
 
-		*ans_packet_buff++ = TICKET_ID_DATA;
+		*ans_packet_buff++ = TICKET_ID_INPUTS_STATE;
 
 		inputs = inputs_get_data(true);
-		*ans_packet_buff++ = *ptr++; // 0..7 in
-		*ans_packet_buff = *ptr; // 8..15 in
+		*ans_packet_buff++ = ptr[0]; // 0..7 in
+		*ans_packet_buff = ptr[1]; // 8..15 in
 
 
 		*ans_packet_size = 8;
@@ -161,7 +163,62 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 
 	}
 
-	// this is not MAC command
+	// this is not inputs state command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_changed(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	uint16_t data;
+	uint8_t * ptr = (uint8_t*)&data;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_INPUTS_STATE_CHANGED)
+	) {
+
+		// this is inputs state changed command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_INPUTS_STATE_CHANGED;
+
+		data = inputs_get_data(true);
+		*ans_packet_buff++ = ptr[0]; // 0..7 in
+		*ans_packet_buff++ = ptr[1]; // 8..15 in
+
+		data = inputs_get_change();
+		*ans_packet_buff++ = ptr[0]; // 0..7 in change flags
+		*ans_packet_buff = ptr[1]; // 8..15 in change flags
+
+		inputs_set_previous();
+
+		*ans_packet_size = 10;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not inputs state changed command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
@@ -250,6 +307,53 @@ enum COMMUNICATION_COMMAND_STATES communication_command_device_name(
 		*ans_packet_buff++ = TICKET_ID_DEVICE_NAME; //
 
 		len = copy_device_name(ans_packet_buff);
+
+		ans_packet_buff[len] = 0x0; //end of string
+
+		*ans_packet_size = 6 + len + 1;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not device name command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_compilation_date(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		)  {
+
+	uint8_t len;
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_COMPILATION_DATE)
+	) {
+
+		// this is compilation date command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_COMPILATION_DATE; //
+
+		len = copy_compilation_date(ans_packet_buff);
 
 		ans_packet_buff[len] = 0x0; //end of string
 

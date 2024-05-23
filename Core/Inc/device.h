@@ -27,6 +27,7 @@ struct work_time_t {
 
 uint8_t copy_MAC(uint8_t* dst);
 uint8_t copy_device_name(uint8_t* dst);
+uint8_t copy_compilation_date(uint8_t* dst);
 
 void check_device_type_func();
 enum DEVICE_TYPE get_device_type();

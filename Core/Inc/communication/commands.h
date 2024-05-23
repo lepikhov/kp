@@ -14,10 +14,12 @@
 #define COMMAND_DATA_REQUEST	0xA0
 
 //COMMANDS IDS
-#define COMMAND_ID_INPUTS_STATE		0x00
-#define COMMAND_ID_DEVICE_NAME		0x22
-#define COMMAND_ID_WORK_TIME 		0x32
-#define COMMAND_ID_MAC			   	0x41
+#define COMMAND_ID_INPUTS_STATE				0x00
+#define COMMAND_ID_INPUTS_STATE_CHANGED		0x01
+#define COMMAND_ID_COMPILATION_DATE 		0x21
+#define COMMAND_ID_DEVICE_NAME				0x22
+#define COMMAND_ID_WORK_TIME 				0x32
+#define COMMAND_ID_MAC			   			0x41
 
 //ANSWER TICKETS
 #define TICKET_IDENTIFICATION	  0x00
@@ -26,10 +28,13 @@
 #define TICKET_WRONG_PACKET_DATA  0x22
 
 //ANSWER TICKETS IDS
-#define TICKET_ID_DATA			0x00
-#define TICKET_ID_DEVICE_NAME	0x21
-#define TICKET_ID_WORK_TIME 	0x32
-#define TICKET_ID_MAC			0x41
+#define TICKET_ID_DATA								0x00
+#define TICKET_ID_INPUTS_STATE						0x00
+#define TICKET_ID_INPUTS_STATE_CHANGED				0x01
+#define TICKET_ID_COMPILATION_DATE 					0x21
+#define TICKET_ID_DEVICE_NAME						0x22
+#define TICKET_ID_WORK_TIME 						0x32
+#define TICKET_ID_MAC								0x41
 
 #define DEVICE_MANUFACTURE_ID 	0x37
 #define DEVICE_TYPE_KDS_ID		0x10
@@ -82,6 +87,13 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 		uint16_t* ans_packet_size
 		);
 
+enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_changed(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
 enum COMMUNICATION_COMMAND_STATES communication_command_work_time(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
@@ -90,6 +102,13 @@ enum COMMUNICATION_COMMAND_STATES communication_command_work_time(
 		);
 
 enum COMMUNICATION_COMMAND_STATES communication_command_device_name(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
+enum COMMUNICATION_COMMAND_STATES communication_command_compilation_date(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
 		uint16_t req_packet_size,
