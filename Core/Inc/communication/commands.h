@@ -18,6 +18,7 @@
 #define COMMAND_ID_INPUTS_STATE_CHANGED		0x01
 #define COMMAND_ID_COMPILATION_DATE 		0x21
 #define COMMAND_ID_DEVICE_NAME				0x22
+#define COMMAND_ID_STATISTIC			   	0x31
 #define COMMAND_ID_WORK_TIME 				0x32
 #define COMMAND_ID_MAC			   			0x41
 
@@ -33,6 +34,7 @@
 #define TICKET_ID_INPUTS_STATE_CHANGED				0x01
 #define TICKET_ID_COMPILATION_DATE 					0x21
 #define TICKET_ID_DEVICE_NAME						0x22
+#define TICKET_ID_STATISTIC							0x31
 #define TICKET_ID_WORK_TIME 						0x32
 #define TICKET_ID_MAC								0x41
 
@@ -109,6 +111,13 @@ enum COMMUNICATION_COMMAND_STATES communication_command_device_name(
 		);
 
 enum COMMUNICATION_COMMAND_STATES communication_command_compilation_date(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
+enum COMMUNICATION_COMMAND_STATES communication_command_statistic(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
 		uint16_t req_packet_size,

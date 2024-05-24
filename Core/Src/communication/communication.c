@@ -16,6 +16,7 @@
 
 
 struct communication_t communication={0};
+struct communication_statistic_t communication_statistic={0};
 
 enum COMMUNICATION_STATES communication_init(void) {
 	return communication_start_rx();
@@ -46,12 +47,15 @@ enum COMMUNICATION_STATES communication_func(void) {
 			break;
 		case RXTX_STATE_MACHINE_RECEIVED:
 			//
-			communication_commands_parser(
+
+			++communication_statistic.tx_count;
+
+			if (communication_commands_parser(
 					communication.rx_packet_buff,
 					communication.tx_packet_buff,
 					communication.rx_packet_size,
 					&communication.tx_packet_size
-					);
+					) != COMMUNICATION_OK) ++communication_statistic.tx_err_count;
 
 			crc16_calc_buff(
 					communication.tx_packet_buff,
@@ -89,12 +93,15 @@ enum COMMUNICATION_STATES  communication_rx(void){
 	switch (communication.rx_state) {
 		case RX_STATE_MACHINE_RACEIVED_FULL_POCKET:
 			//
+			++communication_statistic.rx_count;
 			state = communication_prepare_rx_packet();
 			if (state != COMMUNICATION_OK) {
+				++communication_statistic.rx_err_count;
 				communication.state = RXTX_STATE_MACHINE_SENDING_ERROR_RESPONSE;
 				return COMMUNICATION_RX_PACKET_ERR;
 			}
 			if (!crc16_check_buff(communication.rx_packet_buff, communication.rx_packet_size)) {
+				++communication_statistic.rx_err_count;
 				communication_start_rx();
 				return COMMUNICATION_RX_PACKET_CRC_ERR;
 			}
@@ -122,6 +129,7 @@ enum COMMUNICATION_STATES communication_rx_irq(void) {
 			}
 			else {
 				communication.rx_cntr = 0;
+				++communication_statistic.rx_err_count;
 				state = COMMUNICATION_RX_FRAME_ERR;
 			}
 			break;
@@ -153,6 +161,7 @@ enum COMMUNICATION_STATES communication_rx_irq(void) {
 				}
 				else {//Not 'B' and Not 'K'
 					communication.rx_cntr = 0;
+					++communication_statistic.rx_err_count;
 					communication.rx_state = RX_STATE_MACHINE_WAITING_START_B;
 				}
 			}
@@ -171,6 +180,7 @@ enum COMMUNICATION_STATES communication_rx_irq(void) {
 		if (rx_cntr < COMMUNICATION_BUFFER_SIZE-1) ++communication.rx_cntr;
 		else {
 			communication.rx_cntr = 0;
+			++communication_statistic.rx_err_count;
 			state = COMMUNICATION_RX_BUFFER_OVER_ERR;
 		}
 	}
@@ -195,6 +205,7 @@ enum COMMUNICATION_STATES communication_start_tx(void) {
 
 void usart_tx_callback(void) {
 	if (communication.state == RXTX_STATE_MACHINE_SENDING_GOOD_RESPONSE) {
+		//++communication_statistic.tx_count;
 		communication_start_rx();
 	}
 }
@@ -255,5 +266,10 @@ enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void) {
 
 	return COMMUNICATION_OK;
 
+}
+
+uint8_t communication_copy_statistic(uint8_t * dst) {
+	memcpy(dst, &communication_statistic, sizeof(communication_statistic));
+	return sizeof(communication_statistic);
 }
 

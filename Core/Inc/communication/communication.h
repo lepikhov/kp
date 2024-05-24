@@ -32,7 +32,7 @@ enum COMMUNICATION_COMMAND_STATES {
 
 #define COMMUNICATION_BUFFER_SIZE 512
 
-struct communication_t{
+struct communication_t {
 	enum RXTX_STATE_MACHINE_STATES state;
 	enum RX_STATE_MACHINE_STATES rx_state;
 	uint8_t rx_buff[COMMUNICATION_BUFFER_SIZE];
@@ -45,6 +45,15 @@ struct communication_t{
 	uint16_t rx_packet_size;
 	uint16_t tx_packet_size;
 };
+
+//statistics
+struct communication_statistic_t {
+	uint16_t rx_count;
+	uint16_t rx_err_count;
+	uint16_t tx_count;
+	uint16_t tx_err_count;
+};
+
 
 // protocol frame bytes
 #define BYTE_B 0x7E
@@ -64,5 +73,7 @@ enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void);
 
 void usart_tx_callback(void);
 void usart_rx_callback(void);
+
+uint8_t communication_copy_statistic(uint8_t * dst);
 
 #endif /* INC_COMMUNICATION_COMMUNICATION_H_ */

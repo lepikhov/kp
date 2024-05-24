@@ -20,6 +20,7 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_work_time,
 		communication_command_device_name,
 		communication_command_compilation_date,
+		communication_command_statistic,
 };
 
 enum COMMUNICATION_COMMAND_STATES communication_command_identification(
@@ -368,6 +369,47 @@ enum COMMUNICATION_COMMAND_STATES communication_command_compilation_date(
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
 
+enum COMMUNICATION_COMMAND_STATES communication_command_statistic(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_STATISTIC)
+	) {
+
+		// this is statistic command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_STATISTIC; //
+
+		*ans_packet_size = 6 + communication_copy_statistic(ans_packet_buff);
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not statistic command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
 enum COMMUNICATION_STATES communication_commands_parser(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
@@ -376,7 +418,7 @@ enum COMMUNICATION_STATES communication_commands_parser(
 		) {
 
 	enum COMMUNICATION_STATES state = COMMUNICATION_OK;
-	enum COMMUNICATION_COMMAND_STATES func_pars_state = COMMUNICATION_OK;
+	enum COMMUNICATION_COMMAND_STATES func_pars_state = COMMUNICATION_COMMAND_OK;
 
 	for (uint16_t i=0; i<sizeof(communication_commands_table)/sizeof(communication_commands_func); ++i) {
 		func_pars_state = communication_commands_table[i](req_packet_buff, ans_packet_buff, req_packet_size, ans_packet_size);
