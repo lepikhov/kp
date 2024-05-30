@@ -76,4 +76,5 @@ void usart_rx_callback(void);
 
 uint8_t communication_copy_statistic(uint8_t * dst);
 
+
 #endif /* INC_COMMUNICATION_COMMUNICATION_H_ */

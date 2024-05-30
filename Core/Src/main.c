@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 #include "dma.h"
 #include "i2c.h"
 #include "spi.h"
@@ -29,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "wd.h"
 #include <communication/communication.h>
+#include <indication/indication.h>
 #include <inputs.h>
 #include <device.h>
 #include "board.h"
@@ -100,21 +100,30 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //wd_init();
   communication_init();
+  indication_init();
 
-  HAL_I2C_MspInit(&hi2c2);
+  //HAL_I2C_MspInit(&hi2c2);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  //I2C_ClearBusyFlagErratum(&hi2c2, 10);
 
   while (1)
   {
 
 	//ext_wd_func();
+	check_device_type_func();
 	communication_func();
 	inputs_func();
-	check_device_type_func();
+
+	uint16_t inputs = inputs_get_data(true);
+	indication_set_leds(0, inputs&0xff);
+	indication_set_leds(1, (inputs>>8)&0xff);
+	indication_func();
+	indication_rx_tx_led_func();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

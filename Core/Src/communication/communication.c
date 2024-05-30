@@ -10,6 +10,7 @@
 #include <string.h>
 #include <communication/communication.h>
 #include <communication/commands.h>
+#include <indication/indication.h>
 #include "main.h"
 #include "usart.h"
 #include "board.h"
@@ -47,7 +48,7 @@ enum COMMUNICATION_STATES communication_func(void) {
 			break;
 		case RXTX_STATE_MACHINE_RECEIVED:
 			//
-
+			indication_start_rx_led();
 			++communication_statistic.tx_count;
 
 			if (communication_commands_parser(
@@ -198,6 +199,7 @@ enum COMMUNICATION_STATES communication_set_tx_buffer(void * src, uint16_t size)
 
 enum COMMUNICATION_STATES communication_start_tx(void) {
 	RS485_DIR_TX;
+	indication_start_tx_led();
 	communication.state = RXTX_STATE_MACHINE_SENDING_GOOD_RESPONSE;
 	HAL_UART_Transmit_IT(&huart2, (uint8_t*)communication.tx_buff, communication.tx_size);
 	return COMMUNICATION_OK;

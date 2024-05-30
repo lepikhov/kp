@@ -4,11 +4,14 @@
  *  Created on: Feb 21, 2024
  *      Author: lepikhov
  */
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <indication/tm1650.h>
 #include <string.h>
 
 #include "main.h"
 #include "i2c.h"
-#include "TM1650.h"
 
 
 const uint8_t TM1650_CDigits[128] = {
@@ -23,7 +26,7 @@ const uint8_t TM1650_CDigits[128] = {
 		  0x73, 0x67, 0x50, 0x6D, 0x78, 0x1C, 0x00, 0x00, 0x00, 0x6E, 0x00, 0x39, 0x30, 0x0F, 0x00, 0x00  // 0x70
 };
 
-struct TM1650_struct TM1650;
+struct TM1650_t TM1650;
 
 /** Constructor, uses default values for the parameters
  * so could be called with no parameters.
@@ -42,8 +45,6 @@ bool TM1650_init() {
 		TM1650.iBuffer[i] = 0;
 		TM1650.iCtrl[i] = 0;
 	}
-	//Wire.beginTransmission(TM1650_DISPLAY_BASE);
-	//TM1650.iActive = (Wire.endTransmission() == 0);
 	TM1650.txBuffer[0] = TM1650_DISPLAY_BASE;
 	uint32_t status = I2C_WRITE((TM1650_DISPLAY_BASE) << 1,TM1650.txBuffer,1,10);
 	TM1650.iActive = (status == HAL_OK);
@@ -61,11 +62,7 @@ void TM1650_setBrightness(unsigned int aValue) {
 	TM1650.iBrightness = (aValue > TM1650_MAX_BRIGHT) ? TM1650_MAX_BRIGHT : aValue;
 
 	for (unsigned int i=0; i<TM1650.iNumDigits; i++) {
-		//Wire.beginTransmission(TM1650_DCTRL_BASE+(int)i);
 		TM1650.iCtrl[i] = (TM1650.iCtrl[i] & TM1650_MSK_BRIGHT) | ( TM1650.iBrightness << TM1650_BRIGHT_SHIFT );
-		//Wire.write((uint8_t) TM1650.iCtrl[i]);
-		//Wire.endTransmission();
-		//TM1650.txBuffer[0] = TM1650_DCTRL_BASE+(uint8_t)i;
 		TM1650.txBuffer[0] = TM1650.iCtrl[i];
 		I2C_WRITE((TM1650_DCTRL_BASE+(uint8_t)i) << 1,TM1650.txBuffer,1,10);
 	}
@@ -81,7 +78,6 @@ void TM1650_setBrightnessGradually(unsigned int aValue) {
 	unsigned int i = TM1650.iBrightness;
 	do {
 		TM1650_setBrightness(i);
-		//delay(50);
 		HAL_Delay(50);
 		i += step;
 	} while (i!=aValue);
@@ -99,11 +95,7 @@ void TM1650_displayState(bool aState) {
 void TM1650_displayOn() {
 	if (!TM1650.iActive) return;
 	for (unsigned int i=0; i<TM1650.iNumDigits; i++) {
-		//Wire.beginTransmission(TM1650_DCTRL_BASE+(int)i);
 		TM1650.iCtrl[i] = (TM1650.iCtrl[i] & TM1650_MSK_ONOFF) | TM1650_BIT_DOT;
-		//Wire.write((uint8_t) iCtrl[i]);
-		//Wire.endTransmission();
-		//TM1650.txBuffer[0] = TM1650_DCTRL_BASE+(uint8_t)i;
 		TM1650.txBuffer[0] = TM1650.iCtrl[i];
 		I2C_WRITE((TM1650_DCTRL_BASE+(uint8_t)i) << 1,TM1650.txBuffer,1,10);
 
@@ -115,11 +107,7 @@ void TM1650_displayOn() {
 void TM1650_displayOff() {
 	if (!TM1650.iActive) return;
 	for (unsigned int i=0; i<TM1650.iNumDigits; i++) {
-		//Wire.beginTransmission(TM1650_DCTRL_BASE+(int)i);
 		TM1650.iCtrl[i] = (TM1650.iCtrl[i] & TM1650_MSK_ONOFF);
-		//Wire.write((uint8_t) iCtrl[i]);
-		//Wire.endTransmission();
-		//TM1650.txBuffer[0] = TM1650_DCTRL_BASE+(uint8_t)i;
 		TM1650.txBuffer[0] = TM1650.iCtrl[i];
 		I2C_WRITE((TM1650_DCTRL_BASE+(uint8_t)i) << 1,TM1650.txBuffer,1,10);
 	}
@@ -134,10 +122,7 @@ void TM1650_displayOff() {
 void TM1650_controlPosition(unsigned int aPos, uint8_t aValue) {
 	if (!TM1650.iActive) return;
 	if (aPos < TM1650.iNumDigits) {
-		//Wire.beginTransmission(TM1650_DCTRL_BASE + (int)aPos);
 		TM1650.iCtrl[aPos] = aValue;
-		//Wire.write(aValue);
-		//Wire.endTransmission();
 	}
 }
 
@@ -150,10 +135,7 @@ void TM1650_controlPosition(unsigned int aPos, uint8_t aValue) {
 void TM1650_setPosition(unsigned int aPos, uint8_t aValue) {
 	if (!TM1650.iActive) return;
 	if (aPos < TM1650.iNumDigits) {
-		//Wire.beginTransmission(TM1650_DISPLAY_BASE + (int)aPos);
 		TM1650.iBuffer[aPos] = aValue;
-		//Wire.write(aValue);
-		//Wire.endTransmission();
 	}
 }
 
@@ -173,11 +155,7 @@ void	TM1650_setDot(unsigned int aPos, bool aState) {
 void TM1650_clear() {
 	if (!TM1650.iActive) return;
 	for (unsigned int i=0; i<TM1650.iNumDigits; i++) {
-		//Wire.beginTransmission(TM1650_DISPLAY_BASE+(int)i);
 		TM1650.iBuffer[i] = 0;
-		//Wire.write((uint8_t) 0);
-		//Wire.endTransmission();
-		//TM1650.txBuffer[0] = TM1650_DISPLAY_BASE+(uint8_t)i;
 		TM1650.txBuffer[0] = 0;
 		I2C_WRITE((TM1650_DISPLAY_BASE+(uint8_t)i) << 1,TM1650.txBuffer,1,10);
 	}
@@ -198,10 +176,6 @@ void TM1650_displayString(char *aString) {
 		TM1650.iBuffer[i] = TM1650_CDigits[a];
 
 		if (a) {
-			//Wire.beginTransmission(TM1650_DISPLAY_BASE+(int)i);
-			//Wire.write(iBuffer[i] | dot);
-			//Wire.endTransmission();
-			//TM1650.txBuffer[0] = TM1650_DISPLAY_BASE+(uint8_t)i;
 			TM1650.txBuffer[0] = TM1650.iBuffer[i] | dot;
 			I2C_WRITE((TM1650_DISPLAY_BASE+(uint8_t)i) << 1,TM1650.txBuffer,1,10);
 		}
@@ -253,9 +227,6 @@ void TM1650_displayChar(uint8_t aPos, uint8_t aData, bool aDot) {
 
 	if (aDot) aData |= TM1650_DOT;
 	TM1650.iBuffer[aPos] = aData;
-	//Wire.beginTransmission(TM1650_DISPLAY_BASE + aPos);
-	//Wire.write(aData);
-	//Wire.endTransmission();
 	TM1650.txBuffer[0] = aData;
 	I2C_WRITE((TM1650_DISPLAY_BASE+(uint8_t)aPos) << 1,TM1650.txBuffer,1,10);
 }
@@ -264,9 +235,6 @@ void	TM1650_directLEDdrive(uint8_t aPos, uint8_t aData) {
 	if (!TM1650.iActive) return;
 
 	TM1650.iBuffer[aPos] = aData;
-	//Wire.beginTransmission(TM1650_DISPLAY_BASE + aPos);
-	//Wire.write(aData);
-	//Wire.endTransmission();
 	TM1650.txBuffer[0] = aData;
 	I2C_WRITE((TM1650_DISPLAY_BASE+(uint8_t)aPos) << 1,TM1650.txBuffer,1,10);
 }
@@ -277,9 +245,6 @@ void	TM1650_directLEDdrive(uint8_t aPos, uint8_t aData) {
  */
 uint8_t TM1650_getButtons(void) {
 	uint8_t keys = 0;
-	//Wire.requestFrom(TM1650_DCTRL_BASE, 2);
-	//keys = Wire.read();
-	//Wire.read();
 	return keys;
 }
 
