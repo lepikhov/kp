@@ -11,6 +11,7 @@
 
 //COMMANDS TYPES
 #define COMMAND_IDENTIFICATION 	0x80
+#define COMMAND_RESET		 	0x81
 #define COMMAND_DATA_REQUEST	0xA0
 
 //COMMANDS IDS
@@ -27,6 +28,7 @@
 #define TICKET_DATA_SEND		  0x20
 #define TICKET_WRONG_COMMAND  	  0x21
 #define TICKET_WRONG_PACKET_DATA  0x22
+#define TICKET_RESET			  0x23
 
 //ANSWER TICKETS IDS
 #define TICKET_ID_DATA								0x00
@@ -76,6 +78,13 @@ enum COMMUNICATION_COMMAND_STATES communication_command_identification(
 		);
 
 enum COMMUNICATION_COMMAND_STATES communication_command_MAC(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
+enum COMMUNICATION_COMMAND_STATES communication_command_reset(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
 		uint16_t req_packet_size,

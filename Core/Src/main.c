@@ -123,6 +123,7 @@ int main(void)
 	indication_set_leds(1, (inputs>>8)&0xff);
 	indication_func();
 	indication_rx_tx_led_func();
+	program_reset_func();
 
     /* USER CODE END WHILE */
 

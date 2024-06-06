@@ -7,6 +7,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include "main.h"
 #include <device.h>
@@ -20,6 +21,7 @@ const char COMPILATION_DATE[] = __DATE__" "__TIME__;
 
 uint8_t device_type = 0;
 struct work_time_t work_time = {0};
+struct reset_t reset = {0};
 
 void check_device_type_func() {
 	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_14) == GPIO_PIN_SET ) {
@@ -84,8 +86,26 @@ void update_work_time() {
 
 }
 
+uint32_t get_delta_tick(uint32_t tick) {
+	return HAL_GetTick() - tick;
+}
+
 uint32_t get_work_time_sek() {
 	return work_time.sek;
 }
 
+
+void program_reset_start(uint32_t delay) {
+	reset.start = true;
+	reset.start_tick = HAL_GetTick();
+	reset.delay = delay;
+}
+
+void program_reset_func(void) {
+	if (reset.start) {
+		if (get_delta_tick(reset.start_tick) >= reset.delay) {
+			NVIC_SystemReset();
+		}
+	}
+}
 

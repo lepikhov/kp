@@ -61,26 +61,6 @@ void indication_func(void) {
 			//
 	}
 
-	/*
-	if (indication.state==INDIICATION_INIT) {
-		TM1650_TM1650(4);
-		if (!TM1650_init()) {
-			I2C_ClearBusyFlagErratum(&hi2c2, 10);
-			return;
-		}
-		else {
-			indication.state=INDIICATION_LEDS1;
-			TM1650_displayOn();
-			TM1650_setBrightness(TM1650_MAX_BRIGHT);
-		}
-	}
-
-
-	TM1650_directLEDdrive(0, indication.leds[0]);
-	TM1650_directLEDdrive(1, indication.leds[1]);
-	TM1650_directLEDdrive(2, indication.leds[2]);
-	TM1650_directLEDdrive(3, indication.leds[3]);
-	*/
 
 }
 

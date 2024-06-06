@@ -15,6 +15,7 @@
 communication_commands_func communication_commands_table[] = {
 		communication_command_identification,
 		communication_command_MAC,
+		communication_command_reset,
 		communication_command_inputs_state,
 		communication_command_inputs_state_changed,
 		communication_command_work_time,
@@ -115,6 +116,48 @@ enum COMMUNICATION_COMMAND_STATES communication_command_MAC(
 	}
 
 	// this is not MAC command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_reset(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_RESET) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) 		// quantity of blocks
+	) {
+
+		// this is reset command
+
+		if (req_packet_size != 7) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		program_reset_start(PROGRAM_RESET_DELAY);
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_RESET; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff = 0x01; // quantity of blocks
+
+
+		*ans_packet_size = 5;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not reset command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
