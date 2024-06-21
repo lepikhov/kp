@@ -8,6 +8,8 @@
 #ifndef INC_DEVICE_H_
 #define INC_DEVICE_H_
 
+#include "../../MIDWARE/FEE/FEE.h"
+
 enum DEVICE_TYPE {
 	DEVICE_TYPE_KDS,
 	DEVICE_TYPE_BTU,
@@ -33,7 +35,10 @@ struct reset_t {
 #define PROGRAM_RESET_DELAY 1000 // 1 sek
 
 
-uint8_t copy_MAC(uint8_t* dst);
+uint8_t copy_MAC(char* dst);
+bool check_MAC(char* src);
+
+
 uint8_t copy_device_name(uint8_t* dst);
 uint8_t copy_compilation_date(uint8_t* dst);
 
@@ -47,6 +52,30 @@ uint32_t get_delta_tick(uint32_t tick);
 void program_reset_start(uint32_t delay);
 void program_reset_func(void);
 
+// read/write some system data from/to flash
+
+#define SERIAL_NUMBER_START_ADDRESS FEE_START_ADDRESS //serial number address
+
+// read/write serial number
+#define SERIAL_NUMBER_WITH_CRC_SIZE (sizeof(uint32_t)+sizeof(uint16_t))
+uint8_t get_serial_number(uint8_t* dst);
+void set_serial_number(uint8_t* src);
+
+// read/write configuration
+#define CONFIGURATION_START_ADDRESS (FEE_START_ADDRESS+SERIAL_NUMBER_WITH_CRC_SIZE)
+
+typedef struct configuration_t {
+	uint8_t address;
+	uint8_t buffer[13];
+	uint16_t crc;
+} configuration;
+
+#define CONFIGURATION_WITH_CRC_SIZE sizeof(configuration)
+uint8_t get_configuration(uint8_t* dst);
+void set_configuration(uint8_t* src);
+
+//RS485 address
+uint8_t get_address();
 
 
 #endif /* INC_DEVICE_H_ */

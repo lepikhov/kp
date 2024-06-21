@@ -11,6 +11,7 @@
 #include <communication/communication.h>
 #include <communication/commands.h>
 #include <indication/indication.h>
+#include <device.h>
 #include "main.h"
 #include "usart.h"
 #include "board.h"
@@ -19,7 +20,10 @@
 struct communication_t communication={0};
 struct communication_statistic_t communication_statistic={0};
 
+
+
 enum COMMUNICATION_STATES communication_init(void) {
+	communication_set_address(get_address());
 	return communication_start_rx();
 }
 
@@ -51,6 +55,16 @@ enum COMMUNICATION_STATES communication_func(void) {
 			indication_start_rx_led();
 			++communication_statistic.tx_count;
 
+			/* temporary disable check address
+			 *
+			if (!communication_check_address(communication.rx_packet_buff[0])) {
+				// message for not this device address
+				communication_start_rx();
+				break;
+			}
+
+			*/
+
 			if (communication_commands_parser(
 					communication.rx_packet_buff,
 					communication.tx_packet_buff,
@@ -60,7 +74,8 @@ enum COMMUNICATION_STATES communication_func(void) {
 
 			crc16_calc_buff(
 					communication.tx_packet_buff,
-					communication.tx_packet_size
+					communication.tx_packet_size,
+					0x0000
 			);
 
 			communication.tx_packet_size += 2;
@@ -101,7 +116,10 @@ enum COMMUNICATION_STATES  communication_rx(void){
 				communication.state = RXTX_STATE_MACHINE_SENDING_ERROR_RESPONSE;
 				return COMMUNICATION_RX_PACKET_ERR;
 			}
-			if (!crc16_check_buff(communication.rx_packet_buff, communication.rx_packet_size)) {
+			if (!crc16_check_buff(communication.rx_packet_buff,
+					communication.rx_packet_size,
+					0x0000)
+				) {
 				++communication_statistic.rx_err_count;
 				communication_start_rx();
 				return COMMUNICATION_RX_PACKET_CRC_ERR;
@@ -275,3 +293,11 @@ uint8_t communication_copy_statistic(uint8_t * dst) {
 	return sizeof(communication_statistic);
 }
 
+
+void communication_set_address(uint8_t address) {
+	communication.address = address;
+}
+
+bool communication_check_address(uint8_t address) {
+	return (!address) || (communication.address == address);
+}

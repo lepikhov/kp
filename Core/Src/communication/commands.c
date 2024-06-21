@@ -22,6 +22,10 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_device_name,
 		communication_command_compilation_date,
 		communication_command_statistic,
+		communication_command_read_parameters,
+		communication_command_write_parameters,
+		communication_command_read_configuration,
+		communication_command_write_configuration,
 };
 
 enum COMMUNICATION_COMMAND_STATES communication_command_identification(
@@ -109,7 +113,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_MAC(
 
 		*ans_packet_buff++ = TICKET_ID_MAC; //
 
-		*ans_packet_size = 6 + copy_MAC(ans_packet_buff);
+		*ans_packet_size = 6 + copy_MAC((char *)ans_packet_buff);
 
 		return COMMUNICATION_COMMAND_OK;
 
@@ -450,6 +454,204 @@ enum COMMUNICATION_COMMAND_STATES communication_command_statistic(
 
 	// this is not statistic command
 
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_write_parameters(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_WRITE_PARAMETERS)
+	) {
+
+		// this is write parameters command
+
+		if (req_packet_size != 20) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		//check MAC
+		if (!check_MAC((char*)&req_packet_buff[6])) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong MAC
+
+		set_serial_number(&req_packet_buff[12]);
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_WRITE_PARAMETERS; //
+
+		*ans_packet_size = 6;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not write parameters command
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_read_parameters(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+	uint8_t size, mac_size;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_READ_PARAMETERS)
+	) {
+
+		// this is read parameters command
+
+		if (req_packet_size != 14) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		//check MAC
+		if (!check_MAC((char*)&req_packet_buff[6])) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong MAC
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_READ_PARAMETERS; //
+
+		mac_size = copy_MAC((char *)ans_packet_buff); // MAC
+		ans_packet_buff += mac_size;
+
+
+		size = get_serial_number(ans_packet_buff);
+
+		*ans_packet_size = 6 + mac_size + size;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not read parameters command
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+
+enum COMMUNICATION_COMMAND_STATES communication_command_write_configuration(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_WRITE_CONFIGURATION)
+	) {
+
+		// this is write configuration command
+
+		if (req_packet_size != 30) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		//check MAC
+		if (!check_MAC((char*)&req_packet_buff[6])) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong MAC
+
+		set_configuration(&req_packet_buff[12]);
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_WRITE_CONFIGURATION; //
+
+		*ans_packet_size = 6;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not write configuration command
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_read_configuration(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+	uint8_t size, mac_size;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_READ_CONFIGURATION)
+	) {
+
+		// this is read configuration command
+
+		if (req_packet_size != 14) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		//check MAC
+		if (!check_MAC((char*)&req_packet_buff[6])) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong MAC
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_READ_CONFIGURATION; //
+
+		mac_size = copy_MAC((char *)ans_packet_buff); // MAC
+		ans_packet_buff += mac_size;
+
+		size = get_configuration(ans_packet_buff);
+
+		*ans_packet_size = 6 + mac_size + size;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not read configuration command
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
 

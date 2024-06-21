@@ -19,8 +19,8 @@ uint16_t crc16_calc(uint8_t data, uint16_t crc) {
 	return crc;
 }
 
-void crc16_calc_buff(uint8_t *buff, uint16_t count) {
-	uint16_t crc = 0x0000;
+void crc16_calc_buff(uint8_t *buff, uint16_t count, uint16_t init) {
+	uint16_t crc = init;
 	while(count--) {
 		crc = crc16_calc(*buff++, crc);
 	}
@@ -28,8 +28,8 @@ void crc16_calc_buff(uint8_t *buff, uint16_t count) {
 	*buff++ = crc & 0xff;	// low byte
 }
 
-bool crc16_check_buff(uint8_t *buff, uint16_t count) {
-	uint16_t crc = 0x0000;
+bool crc16_check_buff(uint8_t *buff, uint16_t count, uint16_t init) {
+	uint16_t crc = init;
 	while(count--) {
 		crc = crc16_calc(*buff++, crc);
 	}

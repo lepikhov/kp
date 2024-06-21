@@ -23,8 +23,8 @@
 #define CRC_POLY 0x1021
 
 uint16_t crc16_calc(uint8_t data, uint16_t crc);
-void crc16_calc_buff(uint8_t *buff, uint16_t count);
-bool crc16_check_buff(uint8_t *buff, uint16_t count);
+void crc16_calc_buff(uint8_t *buff, uint16_t count, uint16_t init);
+bool crc16_check_buff(uint8_t *buff, uint16_t count, uint16_t init);
 
 
 #endif /* CRC_H_ */

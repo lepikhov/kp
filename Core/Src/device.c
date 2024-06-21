@@ -11,6 +11,8 @@
 #include <string.h>
 #include "main.h"
 #include <device.h>
+#include <communication/communication.h>
+#include <communication/crc.h>
 
 
 const char DEVICE_NAME_KDS[] = "KDS";
@@ -51,9 +53,13 @@ enum DEVICE_TYPE get_device_type() {
 	return DEVICE_TYPE_UNKNOWN;
 }
 
-uint8_t copy_MAC(uint8_t* dst) {
-	memcpy(dst, (uint8_t*)UID_BASE, MAC_SIZE);
+uint8_t copy_MAC(char* dst) {
+	memcpy(dst, (char*)UID_BASE, MAC_SIZE);
 	return MAC_SIZE;
+}
+
+bool check_MAC(char* src) {
+	return !strncmp((char*)UID_BASE, src, MAC_SIZE);
 }
 
 uint8_t copy_device_name(uint8_t* dst) {
@@ -107,5 +113,31 @@ void program_reset_func(void) {
 			NVIC_SystemReset();
 		}
 	}
+}
+
+uint8_t get_serial_number(uint8_t* dst) {
+	FEE_ReadData(SERIAL_NUMBER_START_ADDRESS, dst, SERIAL_NUMBER_WITH_CRC_SIZE);
+	return SERIAL_NUMBER_WITH_CRC_SIZE;
+}
+
+void set_serial_number(uint8_t* src) {
+	FEE_WriteData(SERIAL_NUMBER_START_ADDRESS, src, SERIAL_NUMBER_WITH_CRC_SIZE);
+}
+
+
+uint8_t get_configuration(uint8_t* dst) {
+	FEE_ReadData(CONFIGURATION_START_ADDRESS, dst, CONFIGURATION_WITH_CRC_SIZE);
+	return CONFIGURATION_WITH_CRC_SIZE;
+}
+
+void set_configuration(uint8_t* src) {
+	FEE_WriteData(CONFIGURATION_START_ADDRESS, src, CONFIGURATION_WITH_CRC_SIZE);
+}
+
+uint8_t get_address(void) {
+	struct configuration_t conf;
+	get_configuration((uint8_t*)&conf);
+	if (crc16_check_buff((uint8_t*)&conf, sizeof(conf), 0xFFFF)) return conf.address;
+	return DEFAULT_ADDRESS;
 }
 

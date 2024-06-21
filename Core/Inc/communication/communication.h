@@ -33,6 +33,7 @@ enum COMMUNICATION_COMMAND_STATES {
 #define COMMUNICATION_BUFFER_SIZE 512
 
 struct communication_t {
+	uint8_t address;
 	enum RXTX_STATE_MACHINE_STATES state;
 	enum RX_STATE_MACHINE_STATES rx_state;
 	uint8_t rx_buff[COMMUNICATION_BUFFER_SIZE];
@@ -70,11 +71,14 @@ enum COMMUNICATION_STATES  communication_rx(void);
 enum COMMUNICATION_STATES  communication_rx(void);
 enum COMMUNICATION_STATES  communication_prepare_rx_packet(void);
 enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void);
+void communication_set_address(uint8_t address);
+bool communication_check_address(uint8_t address);
 
 void usart_tx_callback(void);
 void usart_rx_callback(void);
 
 uint8_t communication_copy_statistic(uint8_t * dst);
 
+#define DEFAULT_ADDRESS 0x1 // default RS485 address
 
 #endif /* INC_COMMUNICATION_COMMUNICATION_H_ */
