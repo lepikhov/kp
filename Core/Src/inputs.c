@@ -10,8 +10,10 @@
 #include <stdbool.h>
 #include "main.h"
 #include <inputs.h>
+#include <device.h>
 
 struct inputs_t inputs={0};
+struct inputs_blinking_t inputs_blinking={0};
 
 
 void inputs_func(void) {
@@ -32,8 +34,7 @@ uint16_t inputs_get_change(void) {
 	return inputs.changed_data;
 }
 
-void inputs_check_data_func(void)
-{
+void inputs_check_data_func(void) {
 
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == GPIO_PIN_SET ) ++inputs.data_sum[0];
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[1];
@@ -66,4 +67,65 @@ void inputs_check_data_func(void)
 		inputs.data_counter = 0;
 	}
 
+	inputs_check_blinking();
+
 }
+
+void inputs_check_blinking(void) {
+
+	uint16_t mask = 0x1;
+	bool is_check_interval = false;
+
+	if (get_delta_tick(inputs_blinking.start_tick) >= INPUTS_BLINKING_CHECK_INTERVAL) {
+		inputs_blinking.start_tick = HAL_GetTick();
+		is_check_interval = true;
+	}
+
+	inputs_blinking.current_data = inputs_get_data(true);
+
+
+	for (uint8_t i=0; i<16; ++i) {
+		if ( mask & (inputs_blinking.current_data ^ inputs_blinking.previous_data) ) {
+			++inputs_blinking.counters[i];
+		}
+
+		if (is_check_interval) {
+			if (inputs_blinking.counters[i] > INPUTS_BLINKING_CHECK_THRESHOLD) {
+				inputs_blinking.blinking |= mask;
+			}
+			else {
+				inputs_blinking.blinking &= ~mask;
+			}
+			inputs_blinking.counters[i] = 0;
+		}
+
+		mask <<= 1;
+	}
+
+	inputs_blinking.previous_data = inputs_blinking.current_data;
+}
+
+
+uint16_t inputs_get_blinking(void) {
+	return inputs_blinking.blinking;
+}
+
+uint32_t inputs_get_concat_state_and_blinking(void) {
+	uint32_t concat=0;
+	uint16_t state = inputs_get_data(true);
+	uint16_t blinking = inputs_get_blinking();
+	uint16_t mask1 = 0x1;
+	uint32_t mask2 = 0x1;
+
+	for (uint8_t i=0; i<16; ++i) {
+		if (mask1 & state) concat |= mask2;
+		mask2 <<= 1;
+		if (mask1 & blinking) concat |= mask2;
+		mask2 <<= 1;
+		mask1 <<= 1;
+	}
+
+	return concat;
+
+}
+

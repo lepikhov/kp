@@ -18,6 +18,7 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_reset,
 		communication_command_inputs_state,
 		communication_command_inputs_state_changed,
+		communication_command_inputs_state_blinking,
 		communication_command_work_time,
 		communication_command_device_name,
 		communication_command_compilation_date,
@@ -259,6 +260,59 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_changed(
 		*ans_packet_buff = ptr[1]; // 8..15 in change flags
 
 		inputs_set_previous();
+
+		*ans_packet_size = 10;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not inputs state changed command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_blinking(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	uint32_t data;
+	uint8_t * ptr = (uint8_t*)&data;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_INPUTS_STATE_BLINKING)
+	) {
+
+		// this is inputs state blinking command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_INPUTS_STATE_BLINKING;
+
+		data = inputs_get_concat_state_and_blinking();
+		*ans_packet_buff++ = ptr[0]; // 0..3  in + blinking flags
+		*ans_packet_buff++ = ptr[1]; // 4..7 in + blinking flags
+		*ans_packet_buff++ = ptr[2]; // 8..11 in + blinking flags
+		*ans_packet_buff = ptr[3]; // 11..15 in + blinking flags
+
+
 
 		*ans_packet_size = 10;
 

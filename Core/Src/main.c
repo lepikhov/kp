@@ -102,13 +102,10 @@ int main(void)
   communication_init();
   indication_init();
 
-  //HAL_I2C_MspInit(&hi2c2);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //I2C_ClearBusyFlagErratum(&hi2c2, 10);
 
   while (1)
   {

@@ -20,10 +20,26 @@ struct inputs_t {
 	uint8_t  data_counter;
 };
 
+#define INPUTS_BLINKING_CHECK_INTERVAL 5000 // 5 sek
+#define INPUTS_BLINKING_CHECK_THRESHOLD 2 // two changes in 5 sek
+
+struct inputs_blinking_t {
+	uint16_t blinking;
+
+	uint16_t current_data;
+	uint16_t previous_data;
+	uint16_t  counters[16];
+	uint32_t start_tick;
+};
+
 void inputs_func(void);
 void inputs_check_data_func(void);
 uint16_t inputs_get_data(bool invers);
 uint16_t inputs_get_change(void);
 void inputs_set_previous(void);
+
+void inputs_check_blinking(void);
+uint16_t inputs_get_blinking(void);
+uint32_t inputs_get_concat_state_and_blinking(void);
 
 #endif /* INC_INPUTS_H_ */
