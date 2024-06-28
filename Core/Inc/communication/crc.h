@@ -26,5 +26,8 @@ uint16_t crc16_calc(uint8_t data, uint16_t crc);
 void crc16_calc_buff(uint8_t *buff, uint16_t count, uint16_t init);
 bool crc16_check_buff(uint8_t *buff, uint16_t count, uint16_t init);
 
+uint32_t crc32_calc_buff(uint8_t *buf, uint32_t count, uint32_t init);
+uint32_t crc32_calc_ff(uint32_t count, uint32_t init);
+
 
 #endif /* CRC_H_ */

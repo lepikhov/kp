@@ -55,9 +55,14 @@ enum COMMUNICATION_STATES communication_func(void) {
 			indication_start_rx_led();
 			++communication_statistic.tx_count;
 
-			/* temporary disable check address
-			 *
-			if (!communication_check_address(communication.rx_packet_buff[0])) {
+			/* if need temporary disable check address
+
+
+
+			if (!communication_check_address(communication.rx_packet_buff[0],
+											 communication.rx_packet_buff[1]
+											)
+				) {
 				// message for not this device address
 				communication_start_rx();
 				break;
@@ -298,6 +303,8 @@ void communication_set_address(uint8_t address) {
 	communication.address = address;
 }
 
-bool communication_check_address(uint8_t address) {
-	return (!address) || (communication.address == address);
+bool communication_check_address(uint8_t recipient_address, uint8_t sender_address) {
+	return (sender_address == 0xff) ||
+		   (recipient_address == 0xff) ||
+		   (communication.address == recipient_address);
 }

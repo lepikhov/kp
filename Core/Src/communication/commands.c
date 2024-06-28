@@ -22,6 +22,7 @@ communication_commands_func communication_commands_table[] = {
 		communication_command_work_time,
 		communication_command_device_name,
 		communication_command_compilation_date,
+		communication_command_checksum,
 		communication_command_statistic,
 		communication_command_read_parameters,
 		communication_command_write_parameters,
@@ -320,7 +321,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_blinking(
 
 	}
 
-	// this is not inputs state changed command
+	// this is not inputs state blinking command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
@@ -460,6 +461,51 @@ enum COMMUNICATION_COMMAND_STATES communication_command_compilation_date(
 		ans_packet_buff[len] = 0x0; //end of string
 
 		*ans_packet_size = 6 + len + 1;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not device name command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_checksum(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		)  {
+
+	uint8_t len;
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_CHECKSUM)
+	) {
+
+		// this is checksum command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_CHECKSUM; //
+
+		len = get_program_checksum(ans_packet_buff);
+
+		*ans_packet_size = 6 + len;
 
 		return COMMUNICATION_COMMAND_OK;
 
@@ -761,7 +807,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_error_response(
 		) {
 
 	*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
-	*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+	*ans_packet_buff++ = (req_packet_buff[0]==0xFF) ? 0xFF : req_packet_buff[0]; // address of the sender
 
 	*ans_packet_buff++ = ticket; // packet type
 

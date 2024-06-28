@@ -41,6 +41,7 @@ bool check_MAC(char* src);
 
 uint8_t copy_device_name(uint8_t* dst);
 uint8_t copy_compilation_date(uint8_t* dst);
+uint8_t get_program_checksum(uint8_t* dst);
 
 void check_device_type_func();
 enum DEVICE_TYPE get_device_type();
@@ -52,9 +53,14 @@ uint32_t get_delta_tick(uint32_t tick);
 void program_reset_start(uint32_t delay);
 void program_reset_func(void);
 
-// read/write some system data from/to flash
+// read/write some system data from/to fla
+//starts of flash memory reserved for application data
+#define APPLICATION_DATA_START_ADDRESS FEE_START_ADDRESS
+//size of flash memory reserved for application data
+#define APPLICATION_DATA_SIZE FEE_PAGE_SIZE
 
-#define SERIAL_NUMBER_START_ADDRESS FEE_START_ADDRESS //serial number address
+//serial number address
+#define SERIAL_NUMBER_START_ADDRESS APPLICATION_DATA_START_ADDRESS
 
 // read/write serial number
 #define SERIAL_NUMBER_WITH_CRC_SIZE (sizeof(uint32_t)+sizeof(uint16_t))

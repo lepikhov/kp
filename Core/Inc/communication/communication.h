@@ -72,7 +72,7 @@ enum COMMUNICATION_STATES  communication_rx(void);
 enum COMMUNICATION_STATES  communication_prepare_rx_packet(void);
 enum COMMUNICATION_STATES  communication_prepare_tx_buffer(void);
 void communication_set_address(uint8_t address);
-bool communication_check_address(uint8_t address);
+bool communication_check_address(uint8_t recipient_address, uint8_t sender_address);
 
 void usart_tx_callback(void);
 void usart_rx_callback(void);

@@ -83,6 +83,30 @@ uint8_t copy_compilation_date(uint8_t* dst) {
 	return strlen(COMPILATION_DATE);
 }
 
+
+
+uint8_t get_program_checksum(uint8_t* dst) {
+
+	uint32_t flash_size = (*(const uint16_t*)FLASHSIZE_BASE)*1024;
+
+	//crc before application flash memory block
+	uint32_t crc = crc32_calc_buff((uint8_t*)FLASH_BASE,
+			APPLICATION_DATA_START_ADDRESS-FLASH_BASE, 0x00000000);
+
+	//crc for clear (filled 0xFF) application flash memory block
+	crc = crc32_calc_ff(APPLICATION_DATA_SIZE, crc);
+
+	//crc after application flash memory block
+	crc = crc32_calc_buff((uint8_t*)(APPLICATION_DATA_START_ADDRESS+APPLICATION_DATA_SIZE),
+			FLASH_BASE + flash_size -
+			APPLICATION_DATA_START_ADDRESS -
+			APPLICATION_DATA_SIZE,
+			crc);
+
+	memcpy(dst, (void*)&crc, sizeof(crc));
+	return sizeof(crc);
+}
+
 void update_work_time() {
 	++work_time.mlsek;
 	if (work_time.mlsek > 999) {
@@ -131,7 +155,9 @@ uint8_t get_configuration(uint8_t* dst) {
 }
 
 void set_configuration(uint8_t* src) {
-	FEE_WriteData(CONFIGURATION_START_ADDRESS, src, CONFIGURATION_WITH_CRC_SIZE);
+	if (crc16_check_buff(src, sizeof(configuration), 0xFFFF)) {
+		FEE_WriteData(CONFIGURATION_START_ADDRESS, src, CONFIGURATION_WITH_CRC_SIZE);
+	}
 }
 
 uint8_t get_address(void) {
