@@ -48,8 +48,8 @@ void check_device_type_func() {
 }
 
 enum DEVICE_TYPE get_device_type() {
+	if (device_type == 0x0) return DEVICE_TYPE_BTU;
 	if (device_type == 0x1) return DEVICE_TYPE_KDS;
-	if (device_type == 0x7) return DEVICE_TYPE_BTU;
 	return DEVICE_TYPE_UNKNOWN;
 }
 

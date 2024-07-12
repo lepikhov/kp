@@ -18,6 +18,8 @@
 #define COMMAND_ID_INPUTS_STATE				0x00
 #define COMMAND_ID_INPUTS_STATE_CHANGED		0x01
 #define COMMAND_ID_INPUTS_STATE_BLINKING	0x02
+#define COMMAND_ID_OUTPUTS_PRELIMINARY		0x01
+#define COMMAND_ID_OUTPUTS_EXECUTIVE		0x02
 #define COMMAND_ID_COMPILATION_DATE 		0x21
 #define COMMAND_ID_DEVICE_NAME				0x22
 #define COMMAND_ID_CHECKSUM			 		0x23
@@ -41,6 +43,8 @@
 #define TICKET_ID_INPUTS_STATE						0x00
 #define TICKET_ID_INPUTS_STATE_CHANGED				0x01
 #define TICKET_ID_INPUTS_STATE_BLINKING				0x02
+#define TICKET_ID_OUTPUTS_PRELIMINARY				0x01
+#define TICKET_ID_OUTPUTS_EXECUTIVE					0x02
 #define TICKET_ID_COMPILATION_DATE 					0x21
 #define TICKET_ID_DEVICE_NAME						0x22
 #define TICKET_ID_CHECKSUM		 					0x23
@@ -118,6 +122,20 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_changed(
 		);
 
 enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_blinking(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_preliminary(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		);
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 		uint8_t* req_packet_buff,
 		uint8_t* ans_packet_buff,
 		uint16_t req_packet_size,

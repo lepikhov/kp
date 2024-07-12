@@ -30,6 +30,7 @@
 #include <communication/communication.h>
 #include <indication/indication.h>
 #include <inputs.h>
+#include <outputs.h>
 #include <device.h>
 #include "board.h"
 /* USER CODE END Includes */
@@ -113,11 +114,24 @@ int main(void)
 	//ext_wd_func();
 	check_device_type_func();
 	communication_func();
-	inputs_func();
 
-	uint16_t inputs = inputs_get_data(true);
-	indication_set_leds(0, inputs&0xff);
-	indication_set_leds(1, (inputs>>8)&0xff);
+	enum DEVICE_TYPE type = get_device_type();
+
+	if (type==DEVICE_TYPE_KDS) {
+		inputs_func();
+		uint16_t inputs = inputs_get_data(true);
+		indication_set_leds(0, inputs&0xff);
+		indication_set_leds(1, (inputs>>8)&0xff);
+	}
+	else if (type==DEVICE_TYPE_BTU) {
+		outputs_func();
+		uint8_t commands = outputs_get_commands();
+		indication_set_leds(0, commands);
+	}
+	else {
+
+	}
+
 	indication_func();
 	indication_rx_tx_led_func();
 	program_reset_func();

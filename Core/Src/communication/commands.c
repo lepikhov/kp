@@ -11,14 +11,32 @@
 #include <communication/commands.h>
 #include <device.h>
 #include <inputs.h>
+#include <outputs.h>
 
-communication_commands_func communication_commands_table[] = {
+communication_commands_func communication_commands_table_kds[] = {
 		communication_command_identification,
 		communication_command_MAC,
 		communication_command_reset,
 		communication_command_inputs_state,
 		communication_command_inputs_state_changed,
 		communication_command_inputs_state_blinking,
+		communication_command_work_time,
+		communication_command_device_name,
+		communication_command_compilation_date,
+		communication_command_checksum,
+		communication_command_statistic,
+		communication_command_read_parameters,
+		communication_command_write_parameters,
+		communication_command_read_configuration,
+		communication_command_write_configuration,
+};
+
+communication_commands_func communication_commands_table_btu[] = {
+		communication_command_identification,
+		communication_command_MAC,
+		communication_command_reset,
+		communication_command_outputs_preliminary,
+		communication_command_outputs_executive,
 		communication_command_work_time,
 		communication_command_device_name,
 		communication_command_compilation_date,
@@ -191,6 +209,9 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state(
 
 		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
 
+		// this command works only for KDS
+		if (get_device_type() != DEVICE_TYPE_KDS) return COMMUNICATION_COMMAND_MISMATCH;
+
 		// prepare answer
 
 		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
@@ -240,6 +261,9 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_changed(
 		// this is inputs state changed command
 
 		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for KDS
+		if (get_device_type() != DEVICE_TYPE_KDS) return COMMUNICATION_COMMAND_MISMATCH;
 
 		// prepare answer
 
@@ -296,6 +320,9 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_blinking(
 
 		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
 
+		// this command works only for KDS
+		if (get_device_type() != DEVICE_TYPE_KDS) return COMMUNICATION_COMMAND_MISMATCH;
+
 		// prepare answer
 
 		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
@@ -322,6 +349,111 @@ enum COMMUNICATION_COMMAND_STATES communication_command_inputs_state_blinking(
 	}
 
 	// this is not inputs state blinking command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_preliminary(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_OUTPUTS_PRELIMINARY)
+	) {
+
+		// this is outputs preliminary command
+
+		if (req_packet_size != 10) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for BTU
+		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_OUTPUTS_PRELIMINARY;
+
+		*ans_packet_buff++ = 0x1;
+		*ans_packet_buff = 0x1;
+
+
+		*ans_packet_size = 8;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not outputs preliminary command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+) {
+
+	uint16_t duration;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_OUTPUTS_EXECUTIVE)
+	) {
+
+		// this is outputs executive command
+
+		if (req_packet_size != 12) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for BTU
+		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_OUTPUTS_EXECUTIVE;
+
+		*ans_packet_buff++ = 0x1;
+		*ans_packet_buff = 0x1;
+
+		duration = *((uint16_t*)&req_packet_buff[8]);
+
+		outputs_start_command(0, 100*(uint32_t)duration);
+
+
+		*ans_packet_size = 8;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not outputs executive command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
 }
@@ -765,8 +897,23 @@ enum COMMUNICATION_STATES communication_commands_parser(
 	enum COMMUNICATION_STATES state = COMMUNICATION_OK;
 	enum COMMUNICATION_COMMAND_STATES func_pars_state = COMMUNICATION_COMMAND_OK;
 
-	for (uint16_t i=0; i<sizeof(communication_commands_table)/sizeof(communication_commands_func); ++i) {
-		func_pars_state = communication_commands_table[i](req_packet_buff, ans_packet_buff, req_packet_size, ans_packet_size);
+	communication_commands_func * commands_table;
+	uint16_t commands_table_size;
+	enum DEVICE_TYPE type = get_device_type();
+
+
+	if (type == DEVICE_TYPE_BTU) {
+		commands_table = communication_commands_table_btu;
+		commands_table_size = sizeof(communication_commands_table_btu)/sizeof(communication_commands_func);
+	}
+	else {
+		commands_table = communication_commands_table_kds;
+		commands_table_size = sizeof(communication_commands_table_kds)/sizeof(communication_commands_func);
+	}
+
+
+	for (uint16_t i=0; i<commands_table_size; ++i) {
+		func_pars_state = commands_table[i](req_packet_buff, ans_packet_buff, req_packet_size, ans_packet_size);
 		if (func_pars_state != COMMUNICATION_COMMAND_MISMATCH) break;
 	}
 
