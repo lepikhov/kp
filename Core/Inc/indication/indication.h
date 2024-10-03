@@ -41,14 +41,18 @@ uint8_t indication_get_leds(uint8_t addr);
 void indication_set_led(uint8_t addr);
 void indication_clear_led(uint8_t addr);
 
+
 #define COMMUNICATION_RX_LED 26
 #define COMMUNICATION_TX_LED 27
+
+#define DEVICE_HEALTH_LED 24
 
 #define RX_TX_LED_COUNTER_LOADER 40
 
 void indication_start_rx_led(void);
 void indication_start_tx_led(void);
 void indication_rx_tx_led_func(void);
+void indication_health_led_func(bool set);
 
 
 

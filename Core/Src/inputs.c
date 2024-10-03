@@ -17,7 +17,7 @@ struct inputs_blinking_t inputs_blinking={0};
 
 
 void inputs_func(void) {
-	inputs_check_data_func();
+	inputs_check_data_func(false);
 }
 
 uint16_t inputs_get_data(bool invers) {
@@ -34,7 +34,7 @@ uint16_t inputs_get_change(void) {
 	return inputs.changed_data;
 }
 
-void inputs_check_data_func(void) {
+void inputs_check_data_func(bool out_control) {
 
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == GPIO_PIN_SET ) ++inputs.data_sum[0];
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[1];
@@ -44,20 +44,26 @@ void inputs_check_data_func(void) {
 	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_11) == GPIO_PIN_SET ) ++inputs.data_sum[5];
 	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_10) == GPIO_PIN_SET ) ++inputs.data_sum[6];
 	if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10) == GPIO_PIN_SET ) ++inputs.data_sum[7];
-	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_1) == GPIO_PIN_SET ) ++inputs.data_sum[8];
-	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_2) == GPIO_PIN_SET ) ++inputs.data_sum[9];
-	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_3) == GPIO_PIN_SET ) ++inputs.data_sum[10];
-	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_4) == GPIO_PIN_SET ) ++inputs.data_sum[11];
-	if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5) == GPIO_PIN_SET ) ++inputs.data_sum[12];
-	if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET ) ++inputs.data_sum[13];
-	if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET ) ++inputs.data_sum[14];
-	if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[15];
+
+	if (!out_control) {
+		if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_1) == GPIO_PIN_SET ) ++inputs.data_sum[8];
+		if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_2) == GPIO_PIN_SET ) ++inputs.data_sum[9];
+		if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_3) == GPIO_PIN_SET ) ++inputs.data_sum[10];
+		if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_4) == GPIO_PIN_SET ) ++inputs.data_sum[11];
+		if( HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_5) == GPIO_PIN_SET ) ++inputs.data_sum[12];
+		if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET ) ++inputs.data_sum[13];
+		if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET ) ++inputs.data_sum[14];
+		if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[15];
+	}
 
 	if (++inputs.data_counter > INPUT_DATA_FILTER_CAPACITY) {
 		uint16_t in = 0x1;
 
 		inputs.current_data = 0;
 		for (uint8_t i=0; i<16; ++i) {
+
+			if (out_control && (i>7) ) break;
+
 			if (inputs.data_sum[i] > INPUT_DATA_FILTER_THRESHOLD) inputs.current_data |= in;
 			inputs.data_sum[i] = 0;
 
@@ -67,7 +73,7 @@ void inputs_check_data_func(void) {
 		inputs.data_counter = 0;
 	}
 
-	inputs_check_blinking();
+	if (!out_control) inputs_check_blinking();
 
 }
 

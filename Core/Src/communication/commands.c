@@ -444,7 +444,15 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 
 		duration = *((uint16_t*)&req_packet_buff[8]);
 
-		outputs_start_command(0, 100*(uint32_t)duration);
+		//outputs_start_command(0, 100*(uint32_t)duration);
+		outputs_start_command(0, 500, false);
+		outputs_start_command(1, 1000, false);
+		outputs_start_command(2, 1500, false);
+		outputs_start_command(3, 2000, false);
+		outputs_start_command(4, 2500, false);
+		outputs_start_command(5, 3000, false);
+		outputs_start_command(6, 3500, false);
+		outputs_start_command(7, 4000, false);
 
 
 		*ans_packet_size = 8;

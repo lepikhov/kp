@@ -33,7 +33,7 @@ struct inputs_blinking_t {
 };
 
 void inputs_func(void);
-void inputs_check_data_func(void);
+void inputs_check_data_func(bool out_control);
 uint16_t inputs_get_data(bool invers);
 uint16_t inputs_get_change(void);
 void inputs_set_previous(void);

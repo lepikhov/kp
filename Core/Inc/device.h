@@ -46,6 +46,9 @@ uint8_t get_program_checksum(uint8_t* dst);
 void check_device_type_func();
 enum DEVICE_TYPE get_device_type();
 
+
+
+
 void update_work_time();
 uint32_t get_work_time_sek();
 uint32_t get_delta_tick(uint32_t tick);
@@ -82,6 +85,13 @@ void set_configuration(uint8_t* src);
 
 //RS485 address
 uint8_t get_address();
+
+// device health
+enum DEVICE_HEALTH {
+	DEVICE_HEALTH_OK,
+	DEVICE_HEALTH_DEATH,
+};
+enum DEVICE_HEALTH check_device_health();
 
 
 #endif /* INC_DEVICE_H_ */

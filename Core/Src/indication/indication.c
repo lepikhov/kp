@@ -111,3 +111,12 @@ void indication_rx_tx_led_func(void) {
 	}
 }
 
+void indication_health_led_func(bool set) {
+	if (set) {
+		indication_set_led(DEVICE_HEALTH_LED);
+	}
+	else {
+		indication_clear_led(DEVICE_HEALTH_LED);
+	}
+}
+

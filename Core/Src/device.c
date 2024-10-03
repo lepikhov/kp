@@ -167,3 +167,7 @@ uint8_t get_address(void) {
 	return DEFAULT_ADDRESS;
 }
 
+enum DEVICE_HEALTH check_device_health() {
+	return DEVICE_HEALTH_OK;
+}
+

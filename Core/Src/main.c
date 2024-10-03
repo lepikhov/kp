@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "main.h"
 #include "dma.h"
 #include "i2c.h"
 #include "spi.h"
@@ -98,6 +99,7 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM1_Init();
   MX_I2C2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   //wd_init();
   communication_init();
@@ -116,6 +118,8 @@ int main(void)
 	communication_func();
 
 	enum DEVICE_TYPE type = get_device_type();
+	bool health_led = check_device_health()==DEVICE_HEALTH_OK ? true : false;
+	indication_health_led_func(health_led);
 
 	if (type==DEVICE_TYPE_KDS) {
 		inputs_func();
@@ -125,11 +129,18 @@ int main(void)
 	}
 	else if (type==DEVICE_TYPE_BTU) {
 		outputs_func();
-		uint8_t commands = outputs_get_commands();
-		indication_set_leds(0, commands);
+		outputs_check_func();
+		//uint8_t commands = outputs_get_commands();
+		//indication_set_leds(0, commands);
+
+		uint16_t inputs = inputs_get_data(true);
+		indication_set_leds(1, inputs&0xff);
+
+		uint8_t errors = outputs_get_errors();
+		indication_set_leds(0, ~errors);
+		indication_set_leds(2, errors);
 	}
 	else {
-
 	}
 
 	indication_func();
