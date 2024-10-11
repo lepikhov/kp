@@ -128,7 +128,7 @@ void outputs_start_command(uint8_t command, uint32_t duration, bool is_check) {
 
 	set_dir_out((GPIO_TypeDef *)outputs_dma[command].gpio_base, outputs_dma[command].bit);
 
-	outputs.commands[command] = true;
+	outputs.settings[command] = true;
 	outputs.durations[command] = is_check
 			?
 			duration
@@ -181,11 +181,13 @@ void outputs_start_command(uint8_t command, uint32_t duration, bool is_check) {
 }
 
 void outputs_func(void) {
+	bool execute = false;
 	for (uint8_t i=0; i<8; ++i) {
-		if (outputs.commands[i]) {
+		if (outputs.settings[i]) {
+			execute = true;
 			if (get_delta_tick(outputs.start_ticks[i]) >= outputs.durations[i]) {
 
-				outputs.commands[i] = false;
+				outputs.settings[i] = false;
 
 				if (i<5) {
 
@@ -224,22 +226,30 @@ void outputs_func(void) {
 		}
 	}
 
+	if (!execute && (outputs.command_phase==OUTPUTS_PHASE_EXECUTE)) {
+		outputs.command_phase=OUTPUTS_PHASE_IDLE;
+		outputs_set_command_code(0x00FF);
+	}
+
 	inputs_check_data_func(true);
 
 }
 
-bool outputs_check_preliminary_commands(uint8_t outputs1, uint8_t outputs2) {
-	return ((outputs1 ^ outputs2) == 0xff);
+bool outputs_check_command_code(uint16_t command_code) {
+	uint8_t o1 = ((uint8_t*)&command_code)[0];
+	uint8_t o2 = ((uint8_t*)&command_code)[1];
+
+	return ((o1 ^ o2) == 0xff);
 }
 
-uint8_t outputs_get_commands(void) {
-	uint8_t commands = 0;
+uint8_t outputs_get_settings(void) {
+	uint8_t settings = 0;
 	uint8_t mask = 0x1;
 	for (uint8_t i=0; i<8; ++i) {
-		if (outputs.commands[i]) commands |= mask;
+		if (outputs.settings[i]) settings |= mask;
 		mask <<= 1;
 	}
-	return commands;
+	return settings;
 
 }
 
@@ -247,7 +257,7 @@ void outputs_check_func(void) {
 
 	if (!check_outputs.phase) {
 		check_outputs.start_tick = HAL_GetTick();
-		if (!outputs.commands[check_outputs.phase]) {
+		if (!outputs.settings[check_outputs.phase]) {
 			outputs_start_command(0, 2*CHECK_OUTPUT_HALF_PULSE_DURATION, true);
 		}
 		++check_outputs.phase;
@@ -256,7 +266,7 @@ void outputs_check_func(void) {
 
 	if (check_outputs.phase<8) {
 		if (get_delta_tick(check_outputs.start_tick) >= 2*CHECK_OUTPUT_HALF_PULSE_DURATION) {
-			if (!outputs.commands[check_outputs.phase]) {
+			if (!outputs.settings[check_outputs.phase]) {
 				outputs_start_command(check_outputs.phase, 2*CHECK_OUTPUT_HALF_PULSE_DURATION, true);
 			}
 			check_outputs.start_tick = HAL_GetTick();
@@ -286,4 +296,109 @@ uint8_t outputs_get_errors(void) {
 	return err;
 }
 
+uint16_t outputs_get_command_code(void) {
+	if (outputs_check_command_code(outputs.command_code)) return outputs.command_code;
+	return 0x00FF;
+}
+
+uint8_t outputs_set_command_code(uint16_t code) {
+	if (outputs_check_command_code(code)) {
+		outputs.command_code = code;
+		return 0;
+	}
+	outputs.command_code = 0x00FF;
+	return 1;
+}
+
+void outputs_reset_command(void) {
+	for (uint8_t i=0; i<8; ++i) {
+		outputs.durations[i] = 0;
+	}
+	outputs.command_phase = OUTPUTS_PHASE_IDLE;
+	outputs_set_command_code(0x00FF);
+}
+
+uint8_t outputs_set_preliminary_command(uint16_t code) {
+	if (!outputs_check_command_code(code)) return 0x01; // Error: wrong command code;
+	if (outputs.command_phase != OUTPUTS_PHASE_IDLE) return 0x02; // Error: another command is expected
+	if (outputs_get_errors()) return 0x03; // Error: device failure
+
+	outputs_set_command_code(code);
+	outputs.command_phase = OUTPUTS_PHASE_PRELIMINARY;
+	outputs.wait_start_tick = HAL_GetTick();
+
+	return 0x0;
+}
+
+uint8_t outputs_set_executive_command(uint16_t code, uint16_t duration, bool single) {
+	uint8_t mask = 0x1;
+
+	if (!outputs_check_command_code(code)) return 0x01; // Error: wrong command code;
+	if (single) {
+		if (outputs.command_phase != OUTPUTS_PHASE_IDLE) return 0x02; // Error: another command is expected
+	}
+	else {
+		if (code != outputs_get_command_code()) return 0x01; // Error: wrong command code;
+		if (outputs.command_phase != OUTPUTS_PHASE_PRELIMINARY) return 0x02; // Error: another command is expected
+	}
+	if (outputs_get_errors()) return 0x03; // Error: device failure
+
+	outputs_set_command_code(code);
+	for (uint8_t i=0; i<8; ++i) {
+		if (code&mask) outputs_start_command(i, 100*(uint32_t)duration, false);
+		mask <<= 1;
+	}
+	outputs.duration=100*(uint32_t)duration;
+
+	outputs.command_phase = OUTPUTS_PHASE_EXECUTE;
+	outputs.wait_start_tick = HAL_GetTick();
+
+	return 0x0;
+}
+
+struct outputs_status_t outputs_get_command_status(void) {
+	struct outputs_status_t status;
+	uint32_t delta;
+	status.wait_time=0;
+
+
+	switch (outputs.command_phase) {
+		case OUTPUTS_PHASE_IDLE:
+			status.return_code=0x0;
+			break;
+		case OUTPUTS_PHASE_PRELIMINARY:
+			status.return_code=0x1;
+			status.wait_time=get_delta_tick(outputs.wait_start_tick)/100;
+			break;
+		case OUTPUTS_PHASE_EXECUTE:
+			status.return_code=0x3;
+			delta=get_delta_tick(outputs.wait_start_tick);
+			if (delta<outputs.duration) status.wait_time=outputs.duration-delta;
+			break;
+		default:
+			status.return_code=0x4;
+		if (outputs_get_errors()) status.return_code=0x4;
+	}
+
+	status.command_code=outputs_get_command_code();
+
+
+	return status;
+}
+
+uint8_t outputs_get_short_state(void) {
+	return outputs_get_errors();
+}
+
+uint16_t outputs_get_extended_state(void) {
+	uint8_t err=outputs_get_errors();
+	uint8_t mask=0x1;
+	uint16_t state=0;
+	for (uint8_t i=0; i<8; ++i) {
+		if (mask&err) {
+			state |= (0x1<<i);
+		}
+	}
+	return state;
+}
 

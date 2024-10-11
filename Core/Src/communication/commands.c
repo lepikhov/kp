@@ -37,6 +37,11 @@ communication_commands_func communication_commands_table_btu[] = {
 		communication_command_reset,
 		communication_command_outputs_preliminary,
 		communication_command_outputs_executive,
+		communication_command_outputs_reset,
+		communication_command_outputs_command_status,
+		communication_command_outputs_single_executive,
+		communication_command_outputs_short_state,
+		communication_command_outputs_extended_state,
 		communication_command_work_time,
 		communication_command_device_name,
 		communication_command_compilation_date,
@@ -360,6 +365,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_preliminary(
 		uint16_t* ans_packet_size
 ) {
 
+	uint16_t command_code;
 
 	//check command
 
@@ -377,6 +383,9 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_preliminary(
 		// this command works only for BTU
 		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
 
+		command_code = *((uint16_t*)&req_packet_buff[6]);
+
+
 		// prepare answer
 
 		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
@@ -388,11 +397,14 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_preliminary(
 
 		*ans_packet_buff++ = TICKET_ID_OUTPUTS_PRELIMINARY;
 
-		*ans_packet_buff++ = 0x1;
-		*ans_packet_buff = 0x1;
 
 
-		*ans_packet_size = 8;
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[0]; // command code low byte
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[1]; // command code high byte
+		*ans_packet_buff = outputs_set_preliminary_command(command_code); // return code
+
+
+		*ans_packet_size = 9;
 
 		return COMMUNICATION_COMMAND_OK;
 
@@ -411,6 +423,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 ) {
 
 	uint16_t duration;
+	uint16_t command_code;
 
 	//check command
 
@@ -428,6 +441,9 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 		// this command works only for BTU
 		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
 
+		command_code = *((uint16_t*)&req_packet_buff[6]);
+		duration = *((uint16_t*)&req_packet_buff[8]);
+
 		// prepare answer
 
 		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
@@ -439,23 +455,11 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 
 		*ans_packet_buff++ = TICKET_ID_OUTPUTS_EXECUTIVE;
 
-		*ans_packet_buff++ = 0x1;
-		*ans_packet_buff = 0x1;
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[0]; // command code low byte
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[1]; // command code high byte
+		*ans_packet_buff = outputs_set_executive_command(command_code, duration, false); // return code
 
-		duration = *((uint16_t*)&req_packet_buff[8]);
-
-		//outputs_start_command(0, 100*(uint32_t)duration);
-		outputs_start_command(0, 500, false);
-		outputs_start_command(1, 1000, false);
-		outputs_start_command(2, 1500, false);
-		outputs_start_command(3, 2000, false);
-		outputs_start_command(4, 2500, false);
-		outputs_start_command(5, 3000, false);
-		outputs_start_command(6, 3500, false);
-		outputs_start_command(7, 4000, false);
-
-
-		*ans_packet_size = 8;
+		*ans_packet_size = 9;
 
 		return COMMUNICATION_COMMAND_OK;
 
@@ -464,6 +468,270 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_executive(
 	// this is not outputs executive command
 
 	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_reset(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+		//check command
+
+	if (
+			(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+			(req_packet_buff[3] == 0x01) && 	// number of block
+			(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+			(req_packet_buff[5] == COMMAND_ID_OUTPUTS_RESET)
+	) {
+
+		// this is outputs reset command
+		outputs_reset_command();
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for BTU
+		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_OUTPUTS_RESET;
+
+		*ans_packet_buff = 0x0;
+
+
+		*ans_packet_size = 7;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not outputs reset command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_command_status(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+	struct outputs_status_t status;
+	//check command
+
+	if (
+			(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+			(req_packet_buff[3] == 0x01) && 	// number of block
+			(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+			(req_packet_buff[5] == COMMAND_ID_OUTPUTS_COMMAND_STATUS)
+	) {
+
+		// this is outputs command status command
+
+		if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for BTU
+		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+		// prepare answer
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_OUTPUTS_COMMAND_STATUS;
+
+		status = outputs_get_command_status();
+
+		*ans_packet_buff++ = status.return_code; //return code
+
+		*ans_packet_buff++ = ((uint8_t*)(&status.command_code))[0]; // command code low byte
+		*ans_packet_buff++ = ((uint8_t*)(&status.command_code))[1]; // command code high byte
+
+		*ans_packet_buff++ = ((uint8_t*)(&status.wait_time))[0]; // wait time low byte
+		*ans_packet_buff = ((uint8_t*)(&status.wait_time))[1]; // wait time high byte
+
+		*ans_packet_size = 11;
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not outputs command status command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_single_executive(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+	uint16_t duration;
+	uint16_t command_code;
+
+	//check command
+
+	if (
+		(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+		(req_packet_buff[3] == 0x01) && 	// number of block
+		(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+		(req_packet_buff[5] == COMMAND_ID_OUTPUTS_SINGLE_EXECUTIVE)
+	) {
+
+		// this is outputs single executive command
+
+		if (req_packet_size != 12) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+		// this command works only for BTU
+		if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+		// prepare answer
+
+		command_code = *((uint16_t*)&req_packet_buff[6]);
+		duration = *((uint16_t*)&req_packet_buff[8]);
+
+		*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+		*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+		*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+		*ans_packet_buff++ = 0x01; // number of block
+		*ans_packet_buff++ = 0x01; // quantity of blocks
+
+		*ans_packet_buff++ = TICKET_ID_OUTPUTS_SINGLE_EXECUTIVE;
+
+
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[0]; // command code low byte
+		*ans_packet_buff++ = ((uint8_t*)(&command_code))[1]; // command code high byte
+
+		*ans_packet_buff++ = ((uint8_t*)(&duration))[0]; // duration low byte
+		*ans_packet_buff++ = ((uint8_t*)(&duration))[1]; // duration high byte
+		*ans_packet_buff = outputs_set_executive_command(command_code, duration, true); // return code
+
+		*ans_packet_size = 11;
+
+
+
+		return COMMUNICATION_COMMAND_OK;
+
+	}
+
+	// this is not outputs single executive command
+
+	return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_short_state(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+	//check command
+
+		if (
+				(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+				(req_packet_buff[3] == 0x01) && 	// number of block
+				(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+				(req_packet_buff[5] == COMMAND_ID_OUTPUTS_SHORT_STATE)
+		) {
+
+			// this is outputs command short state
+
+			if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+			// this command works only for BTU
+			if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+			// prepare answer
+
+			*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+			*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+			*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+			*ans_packet_buff++ = 0x01; // number of block
+			*ans_packet_buff++ = 0x01; // quantity of blocks
+
+			*ans_packet_buff++ = TICKET_ID_OUTPUTS_SHORT_STATE;
+
+			*ans_packet_buff = outputs_get_short_state();
+
+			*ans_packet_size = 7;
+
+			return COMMUNICATION_COMMAND_OK;
+
+		}
+
+		// this is not outputs command short state
+
+		return COMMUNICATION_COMMAND_MISMATCH;
+}
+
+enum COMMUNICATION_COMMAND_STATES communication_command_outputs_extended_state(
+		uint8_t* req_packet_buff,
+		uint8_t* ans_packet_buff,
+		uint16_t req_packet_size,
+		uint16_t* ans_packet_size
+		) {
+
+	uint16_t state;
+
+	//check command
+
+		if (
+				(req_packet_buff[2] == COMMAND_DATA_REQUEST) && 	// packet type
+				(req_packet_buff[3] == 0x01) && 	// number of block
+				(req_packet_buff[4] == 0x01) &&		// quantity of blocks
+				(req_packet_buff[5] == COMMAND_ID_OUTPUTS_EXTENDED_STATE)
+		) {
+
+			// this is outputs command extended state
+
+			if (req_packet_size != 8) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong data in packets
+
+			// this command works only for BTU
+			if (get_device_type() != DEVICE_TYPE_BTU) return COMMUNICATION_COMMAND_MISMATCH;
+
+			// prepare answer
+
+			*ans_packet_buff++ = req_packet_buff[1]; // address of the recipient
+			*ans_packet_buff++ = req_packet_buff[0]; // address of the sender
+
+			*ans_packet_buff++ = TICKET_DATA_SEND; // packet type
+			*ans_packet_buff++ = 0x01; // number of block
+			*ans_packet_buff++ = 0x01; // quantity of blocks
+
+			*ans_packet_buff++ = TICKET_ID_OUTPUTS_EXTENDED_STATE;
+
+			state = outputs_get_extended_state();
+			*ans_packet_buff++ = ((uint8_t*)(&state))[0]; // state low byte
+			*ans_packet_buff = ((uint8_t*)(&state))[1]; // state high byte
+
+			*ans_packet_size = 8;
+
+			return COMMUNICATION_COMMAND_OK;
+
+		}
+
+		// this is not outputs command short state
+
+		return COMMUNICATION_COMMAND_MISMATCH;
 }
 
 enum COMMUNICATION_COMMAND_STATES communication_command_work_time(
