@@ -36,6 +36,8 @@ uint16_t inputs_get_change(void) {
 
 void inputs_check_data_func(bool out_control) {
 
+	uint8_t filter_capacity, filter_threshold;
+
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7) == GPIO_PIN_SET ) ++inputs.data_sum[0];
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[1];
 	if( HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) == GPIO_PIN_SET ) ++inputs.data_sum[2];
@@ -56,7 +58,19 @@ void inputs_check_data_func(bool out_control) {
 		if( HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET ) ++inputs.data_sum[15];
 	}
 
-	if (++inputs.data_counter > INPUT_DATA_FILTER_CAPACITY) {
+	filter_capacity = out_control
+			?
+			INPUT_DATA_FILTER_CAPACITY_OUT_CONTROL
+			:
+			INPUT_DATA_FILTER_CAPACITY;
+
+	filter_threshold = out_control
+			?
+			INPUT_DATA_FILTER_THRESHOLD_OUT_CONTROL
+			:
+			INPUT_DATA_FILTER_THRESHOLD;
+
+	if (++inputs.data_counter > filter_capacity) {
 		uint16_t in = 0x1;
 
 		inputs.current_data = 0;
@@ -64,7 +78,7 @@ void inputs_check_data_func(bool out_control) {
 
 			if (out_control && (i>7) ) break;
 
-			if (inputs.data_sum[i] > INPUT_DATA_FILTER_THRESHOLD) inputs.current_data |= in;
+			if (inputs.data_sum[i] > filter_threshold) inputs.current_data |= in;
 			inputs.data_sum[i] = 0;
 
 			in <<= 1;
@@ -76,6 +90,9 @@ void inputs_check_data_func(bool out_control) {
 	if (!out_control) inputs_check_blinking();
 
 }
+
+
+
 
 void inputs_check_blinking(void) {
 

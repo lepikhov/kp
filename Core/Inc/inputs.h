@@ -12,6 +12,9 @@
 #define INPUT_DATA_FILTER_CAPACITY 10
 #define INPUT_DATA_FILTER_THRESHOLD 7
 
+#define INPUT_DATA_FILTER_CAPACITY_OUT_CONTROL 10
+#define INPUT_DATA_FILTER_THRESHOLD_OUT_CONTROL 7
+
 struct inputs_t {
 	uint16_t current_data;
 	uint16_t previous_data;

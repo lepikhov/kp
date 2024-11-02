@@ -45,7 +45,7 @@ struct outputs_t {
 
 
 #define CHECK_OUTPUT_HALF_PULSE_DURATION 10 //10 mlsek
-#define CHECK_OUTPUT_IDLE_DURATION 5000 //5000 mlsek
+#define CHECK_OUTPUT_IDLE_DURATION 1000 //1000 mlsek
 
 struct check_outputs_t {
 	uint8_t phase;
@@ -69,14 +69,14 @@ uint8_t outputs_get_settings(void);
 void outputs_check_func(void);
 void outputs_reset_command(void);
 
-uint8_t outputs_get_errors(void);
+uint8_t outputs_get_short_errors(void);
 uint16_t outputs_get_command_code(void);
 uint8_t outputs_set_command_code(uint16_t code);
 uint8_t outputs_set_preliminary_command(uint16_t code);
 uint8_t outputs_set_executive_command(uint16_t code, uint16_t duration, bool single);
 struct outputs_status_t outputs_get_command_status(void);
 uint8_t outputs_get_short_state(void);
-uint16_t outputs_get_extended_state(void);
+void outputs_get_extended_state(uint8_t* dst);
 
 
 

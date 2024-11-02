@@ -690,7 +690,6 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_extended_state(
 		uint16_t* ans_packet_size
 		) {
 
-	uint16_t state;
 
 	//check command
 
@@ -719,17 +718,15 @@ enum COMMUNICATION_COMMAND_STATES communication_command_outputs_extended_state(
 
 			*ans_packet_buff++ = TICKET_ID_OUTPUTS_EXTENDED_STATE;
 
-			state = outputs_get_extended_state();
-			*ans_packet_buff++ = ((uint8_t*)(&state))[0]; // state low byte
-			*ans_packet_buff = ((uint8_t*)(&state))[1]; // state high byte
+			outputs_get_extended_state(ans_packet_buff);
 
-			*ans_packet_size = 8;
+			*ans_packet_size = 14;
 
 			return COMMUNICATION_COMMAND_OK;
 
 		}
 
-		// this is not outputs command short state
+		// this is not outputs command extended state
 
 		return COMMUNICATION_COMMAND_MISMATCH;
 }

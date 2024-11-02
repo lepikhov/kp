@@ -255,6 +255,11 @@ uint8_t outputs_get_settings(void) {
 
 void outputs_check_func(void) {
 
+	if (outputs.command_phase == OUTPUTS_PHASE_EXECUTE) {
+		check_outputs.phase = 0;
+		return;
+	}
+
 	if (!check_outputs.phase) {
 		check_outputs.start_tick = HAL_GetTick();
 		if (!outputs.settings[check_outputs.phase]) {
@@ -274,8 +279,16 @@ void outputs_check_func(void) {
 		}
 		else {
 			if (get_delta_tick(check_outputs.start_tick) >= CHECK_OUTPUT_HALF_PULSE_DURATION) {
-				bool state = inputs_get_data(true)&(1<<(check_outputs.phase-1));
-				check_outputs.errors[check_outputs.phase] = !state;
+				uint8_t ins = inputs_get_data(true)&0xff;
+				for (uint8_t i=0; i<8; ++i) {
+					bool state = ins&(1<<i);
+					if (i == (check_outputs.phase-1)) {
+						check_outputs.errors[i] = state ? 0x00 : 0x01;
+					}
+					else {
+						check_outputs.errors[i] = state ? 0x03 : 0x00;
+					}
+				}
 			}
 		}
 	}
@@ -286,7 +299,7 @@ void outputs_check_func(void) {
 	}
 }
 
-uint8_t outputs_get_errors(void) {
+uint8_t outputs_get_short_errors(void) {
 	uint8_t err = 0;
 	uint8_t mask = 0x1;
 	for (uint8_t i=0; i<8; ++i) {
@@ -321,7 +334,7 @@ void outputs_reset_command(void) {
 uint8_t outputs_set_preliminary_command(uint16_t code) {
 	if (!outputs_check_command_code(code)) return 0x01; // Error: wrong command code;
 	if (outputs.command_phase != OUTPUTS_PHASE_IDLE) return 0x02; // Error: another command is expected
-	if (outputs_get_errors()) return 0x03; // Error: device failure
+	if (outputs_get_short_errors()) return 0x03; // Error: device failure
 
 	outputs_set_command_code(code);
 	outputs.command_phase = OUTPUTS_PHASE_PRELIMINARY;
@@ -341,7 +354,7 @@ uint8_t outputs_set_executive_command(uint16_t code, uint16_t duration, bool sin
 		if (code != outputs_get_command_code()) return 0x01; // Error: wrong command code;
 		if (outputs.command_phase != OUTPUTS_PHASE_PRELIMINARY) return 0x02; // Error: another command is expected
 	}
-	if (outputs_get_errors()) return 0x03; // Error: device failure
+	if (outputs_get_short_errors()) return 0x03; // Error: device failure
 
 	outputs_set_command_code(code);
 	for (uint8_t i=0; i<8; ++i) {
@@ -377,7 +390,7 @@ struct outputs_status_t outputs_get_command_status(void) {
 			break;
 		default:
 			status.return_code=0x4;
-		if (outputs_get_errors()) status.return_code=0x4;
+		if (outputs_get_short_errors()) status.return_code=0x4;
 	}
 
 	status.command_code=outputs_get_command_code();
@@ -387,18 +400,12 @@ struct outputs_status_t outputs_get_command_status(void) {
 }
 
 uint8_t outputs_get_short_state(void) {
-	return outputs_get_errors();
+	return outputs_get_short_errors();
 }
 
-uint16_t outputs_get_extended_state(void) {
-	uint8_t err=outputs_get_errors();
-	uint8_t mask=0x1;
-	uint16_t state=0;
+void outputs_get_extended_state(uint8_t* dst) {
 	for (uint8_t i=0; i<8; ++i) {
-		if (mask&err) {
-			state |= (0x1<<i);
-		}
+		*dst++ = check_outputs.errors[i];
 	}
-	return state;
 }
 

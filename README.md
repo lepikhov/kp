@@ -1,1 +1,1 @@
- # software for KDS and BTU units from the equipment of controlled points of the dispatch centralization "Setun"
+ # software for KDS and BTU units for equipment of controlled points of the dispatch centralization "SETUN"

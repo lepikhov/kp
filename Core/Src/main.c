@@ -136,7 +136,7 @@ int main(void)
 		uint16_t inputs = inputs_get_data(true);
 		indication_set_leds(1, inputs&0xff);
 
-		uint8_t errors = outputs_get_errors();
+		uint8_t errors = outputs_get_short_errors();
 		indication_set_leds(0, ~errors);
 		indication_set_leds(2, errors);
 	}

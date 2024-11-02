@@ -55,7 +55,7 @@ enum COMMUNICATION_STATES communication_func(void) {
 			indication_start_rx_led();
 			++communication_statistic.tx_count;
 
-			/* if need temporary disable check address
+			///* if need temporary disable check address
 
 
 
@@ -68,7 +68,7 @@ enum COMMUNICATION_STATES communication_func(void) {
 				break;
 			}
 
-			*/
+			//*/
 
 			if (communication_commands_parser(
 					communication.rx_packet_buff,
@@ -304,7 +304,9 @@ void communication_set_address(uint8_t address) {
 }
 
 bool communication_check_address(uint8_t recipient_address, uint8_t sender_address) {
-	return (sender_address == 0xff) ||
+	enum DEVICE_TYPE type = get_device_type();
+	if (type==DEVICE_TYPE_BTU) recipient_address &= ~0x60;
+	return (sender_address == 0xfe) ||
 		   (recipient_address == 0xff) ||
 		   (communication.address == recipient_address);
 }
