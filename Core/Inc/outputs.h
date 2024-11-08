@@ -51,6 +51,7 @@ struct check_outputs_t {
 	uint8_t phase;
 	uint32_t start_tick;
 	uint8_t errors[8];
+	uint8_t errors_buffer[8];
 };
 
 struct outputs_status_t {

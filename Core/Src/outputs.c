@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include "main.h"
 #include <inputs.h>
 #include <outputs.h>
@@ -266,6 +267,7 @@ void outputs_check_func(void) {
 			outputs_start_command(0, 2*CHECK_OUTPUT_HALF_PULSE_DURATION, true);
 		}
 		++check_outputs.phase;
+		memset((void*)check_outputs.errors_buffer,0,8);
 		return;
 	}
 
@@ -281,13 +283,17 @@ void outputs_check_func(void) {
 			if (get_delta_tick(check_outputs.start_tick) >= CHECK_OUTPUT_HALF_PULSE_DURATION) {
 				uint8_t ins = inputs_get_data(true)&0xff;
 				for (uint8_t i=0; i<8; ++i) {
+
+					if (check_outputs.errors_buffer[i]) continue;
+
 					bool state = ins&(1<<i);
 					if (i == (check_outputs.phase-1)) {
-						check_outputs.errors[i] = state ? 0x00 : 0x01;
+						check_outputs.errors_buffer[i] = state ? 0x00 : 0x01;
 					}
 					else {
-						check_outputs.errors[i] = state ? 0x03 : 0x00;
+						check_outputs.errors_buffer[i] = state ? 0x03 : 0x00;
 					}
+
 				}
 			}
 		}
@@ -295,6 +301,7 @@ void outputs_check_func(void) {
 	else {
 		if (get_delta_tick(check_outputs.start_tick) >= CHECK_OUTPUT_IDLE_DURATION) {
 			check_outputs.phase = 0;
+			memcpy(check_outputs.errors, check_outputs.errors_buffer, 8);
 		}
 	}
 }
@@ -404,8 +411,6 @@ uint8_t outputs_get_short_state(void) {
 }
 
 void outputs_get_extended_state(uint8_t* dst) {
-	for (uint8_t i=0; i<8; ++i) {
-		*dst++ = check_outputs.errors[i];
-	}
+	memcpy(dst, check_outputs.errors, 8);
 }
 
