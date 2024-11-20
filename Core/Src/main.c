@@ -101,9 +101,10 @@ int main(void)
   MX_I2C2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  //wd_init();
+  wd_init();
   communication_init();
   indication_init();
+
 
   /* USER CODE END 2 */
 
@@ -113,7 +114,7 @@ int main(void)
   while (1)
   {
 
-	//ext_wd_func();
+	ext_wd_func();
 	check_device_type_func();
 	communication_func();
 
@@ -130,8 +131,6 @@ int main(void)
 	else if (type==DEVICE_TYPE_BTU) {
 		outputs_func();
 		outputs_check_func();
-		//uint8_t commands = outputs_get_commands();
-		//indication_set_leds(0, commands);
 
 		uint16_t inputs = inputs_get_data(true);
 		indication_set_leds(1, inputs&0xff);

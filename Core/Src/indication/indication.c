@@ -10,12 +10,15 @@
 #include "main.h"
 #include <indication/i2c_er.h>
 #include <indication/tm1650.h>
+#include <indication/IS31FL3731.h>
 #include "i2c.h"
 #include <indication/indication.h>
+#include <device.h>
 
 
 struct indication_t indication={0};
 struct indication_rxtx_t indication_rxtx={0};
+
 
 
 void indication_init(void) {
@@ -24,6 +27,74 @@ void indication_init(void) {
 }
 
 void indication_func(void) {
+	if (indication.type == INDICATION_TYPE_TM1650) indication_func_TM1650();
+	else indication_func_IS31FL3731();
+}
+
+void indication_func_IS31FL3731(void) {
+
+	uint8_t d;
+
+	switch (indication.state) {
+		case INDIICATION_STATE_IDLE:
+			//
+			if (!IS31FL3731_init(&hi2c2)) {
+				I2C_ClearBusyFlagErratum(&hi2c2, 10);
+				if (++indication.connect_try_count>MAX_CONNECT_TRY_COUNT) {
+					indication.type = INDICATION_TYPE_TM1650;
+					indication.connect_try_count = 0;
+				}
+				return;
+			}
+			IS31FL3731_write_reg(&hi2c2, COMMAND_REGISTER, BANK_1);
+			indication.state=INDICATION_STATE_LEDS1;
+			break;
+		case INDICATION_STATE_LEDS1:
+			//
+			IS31FL3731_directLEDdrive(&hi2c2, 0, indication.leds[0]);
+			indication.state=INDICATION_STATE_LEDS2;
+			break;
+		case INDICATION_STATE_LEDS2:
+			//
+			IS31FL3731_directLEDdrive(&hi2c2, 1, indication.leds[1]);
+			indication.state=INDICATION_STATE_LEDS3;
+			break;
+		case INDICATION_STATE_LEDS3:
+			//
+			IS31FL3731_directLEDdrive(&hi2c2, 2, indication.leds[2]);
+			indication.state=INDICATION_STATE_LEDS4;
+			break;
+		case INDICATION_STATE_LEDS4:
+			//
+			IS31FL3731_directLEDdrive(&hi2c2, 3, indication.leds[3]);
+			indication.state=INDICATION_STATE_DIGIT1;
+			break;
+		case INDICATION_STATE_DIGIT1:
+			//
+			d = get_address()/0x10;
+			d = d<0xA ? d+0x30 : d+0x37;
+			IS31FL3731_directLEDdrive(&hi2c2, DIGIT1_POSITION, IS31FL3731_ascii_to_digit(d));
+			indication.state=INDICATION_STATE_DIGIT2;
+			break;
+		case INDICATION_STATE_DIGIT2:
+			//
+			d = get_address()%0x10;
+			d = d<0xA ? d+0x30 : d+0x37;
+			IS31FL3731_directLEDdrive(&hi2c2, DIGIT2_POSITION, IS31FL3731_ascii_to_digit(d));
+			indication.state=INDICATION_STATE_DIGIT3;
+			break;
+		case INDICATION_STATE_DIGIT3:
+			//
+			IS31FL3731_directLEDdrive(&hi2c2, DIGIT3_POSITION, IS31FL3731_ascii_to_digit('h'));
+			indication.state=INDICATION_STATE_LEDS1;
+			break;
+		default:
+			//
+			indication.state=INDICATION_STATE_LEDS1;
+	}
+}
+
+void indication_func_TM1650(void) {
 
 	switch (indication.state) {
 		case INDIICATION_STATE_IDLE:
@@ -31,6 +102,10 @@ void indication_func(void) {
 			TM1650_TM1650(4);
 			if (!TM1650_init()) {
 				I2C_ClearBusyFlagErratum(&hi2c2, 10);
+				if (++indication.connect_try_count>MAX_CONNECT_TRY_COUNT) {
+					indication.type = INDICATION_TYPE_IS31FL3731;
+					indication.connect_try_count = 0;
+				}
 				return;
 			}
 			TM1650_displayOn();
@@ -57,8 +132,9 @@ void indication_func(void) {
 			TM1650_directLEDdrive(3, indication.leds[3]);
 			indication.state=INDICATION_STATE_LEDS1;
 			break;
-		default:;
+		default:
 			//
+			indication.state=INDICATION_STATE_LEDS1;
 	}
 
 

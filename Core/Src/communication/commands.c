@@ -1087,6 +1087,7 @@ enum COMMUNICATION_COMMAND_STATES communication_command_write_configuration(
 		if (!check_MAC((char*)&req_packet_buff[6])) return COMMUNICATION_COMMAND_PACKET_ERR; //wrong MAC
 
 		set_configuration(&req_packet_buff[12]);
+		communication_set_address(get_address());
 
 		// prepare answer
 
