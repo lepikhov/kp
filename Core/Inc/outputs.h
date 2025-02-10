@@ -44,7 +44,7 @@ struct outputs_t {
 };
 
 
-#define CHECK_OUTPUT_HALF_PULSE_DURATION 10 //10 mlsek
+#define CHECK_OUTPUT_HALF_PULSE_DURATION 20 //20 mlsek
 #define CHECK_OUTPUT_IDLE_DURATION 1000 //1000 mlsek
 
 struct check_outputs_t {

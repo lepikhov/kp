@@ -16,6 +16,7 @@
 
 enum INDICATION_STATES {
 	INDIICATION_STATE_IDLE = 0,
+	INDICATION_STATE_START,
 	INDICATION_STATE_LEDS1,
 	INDICATION_STATE_LEDS2,
 	INDICATION_STATE_LEDS3,
@@ -35,7 +36,12 @@ struct indication_t {
 	uint8_t leds[DIGITS_NUMBER];
 	enum INDICATION_STATES state;
 	uint8_t connect_try_count;
+
+	uint32_t start_tick;
+	bool is_run;
 };
+
+#define INDICATION_START_DELAY 1000 //1000 mlsek
 
 struct indication_rxtx_t {
 	uint8_t rx_counter;

@@ -27,6 +27,7 @@ void indication_init(void) {
 }
 
 void indication_func(void) {
+
 	if (indication.type == INDICATION_TYPE_TM1650) indication_func_TM1650();
 	else indication_func_IS31FL3731();
 }
@@ -47,7 +48,13 @@ void indication_func_IS31FL3731(void) {
 				return;
 			}
 			IS31FL3731_write_reg(&hi2c2, COMMAND_REGISTER, BANK_1);
-			indication.state=INDICATION_STATE_LEDS1;
+			indication.start_tick=HAL_GetTick();
+			indication.state=INDICATION_STATE_START;
+			break;
+		case INDICATION_STATE_START:
+			if (get_delta_tick(indication.start_tick)>=INDICATION_START_DELAY) {
+				indication.state=INDICATION_STATE_LEDS1;
+			}
 			break;
 		case INDICATION_STATE_LEDS1:
 			//

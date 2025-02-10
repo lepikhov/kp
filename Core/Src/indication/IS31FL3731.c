@@ -62,9 +62,9 @@ bool IS31FL3731_init(I2C_HandleTypeDef* handler){
 	// Select bank 1
 	if (!IS31FL3731_write_reg(handler, COMMAND_REGISTER, BANK_1)) return false;
 
-	// Turn off all LEDs
+	// Turn on all LEDs
 	for (uint8_t i = 0; i <= 10; i++) {
-		if (!IS31FL3731_write_reg(handler, IS31FL3731_rows[i], 0x0)) return false;
+		if (!IS31FL3731_write_reg(handler, IS31FL3731_rows[i], 0xff)) return false;
 	}
 
 	// Turn off all Blinking
